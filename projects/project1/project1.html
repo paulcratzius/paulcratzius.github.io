@@ -102,46 +102,36 @@
       </div>
     </div>
 
-    <!-- Demo: Emir mit naivem SSD (Single-Scale) -->
-    <div class="image-grid">
-      <div class="image-container">
-        <img src="./outputs/demos/emir_single-ssd.jpg" alt="emir single-ssd" loading="lazy">
-        <div class="image-caption">
-          Naiver Single-Scale-SSD-Abgleich. Deutlich sichtbare Farbsäume zeigen,
-          dass reine L2-Suche bei großen Verschiebungen/Belichtungsunterschieden versagt.
-        </div>
-      </div>
-    </div>
-
-    <!-- Demo: Kantenbild (Edge Map) -->
-    <div class="image-grid">
-      <div class="image-container">
-        <img src="./outputs/demos/emir_edges.jpg" alt="emir edge map" loading="lazy">
-        <div class="image-caption">
-          Statt Helligkeitswerten vergleichen wir Kanten (Gradient-Magnitude).
-          Das macht die Ausrichtung robuster und präziser bei Kanal-/Helligkeitsunterschieden.
-        </div>
-      </div>
-    </div>
-
-
-    <!-- Small Images (single-scale) -->
+    <!-- Demo: Emir with naive SSD (single-scale) -->
     <div class="section">
-      <div class="section-title"><div class="section-line"></div>
-        <h2>Small Images (Low Resolution)</h2></div>
-      <div class="description">Exhaustive <b>single-scale</b> alignment (SSD/NCC) and (optionally) phase correlation.</div>
-      <table class="cmp" id="tbl-small">
-        <thead>
-          <tr>
-            <th>Image</th>
-            <th>SSD (single)</th>
-            <th>NCC (single)</th>
-            <th>Phase Corr.</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="section-title"><div class="section-line"></div><h2>Spotlight: Emir — plain L2 (single-scale)</h2></div>
+      <div class="description">
+        A deliberately naive single-scale SSD alignment. The strong color fringing shows that plain L2 on raw intensities
+        fails for large displacements and illumination differences, motivating coarse-to-fine and phase-based methods.
+      </div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img id="emir-ssd" alt="Emir — SSD (single-scale)" loading="lazy">
+          <div class="image-caption">Emir — SSD (single-scale): clear misalignment and color fringing</div>
+        </div>
+      </div>
     </div>
+
+    <!-- Demo: Edge map used for pyramid alignment -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Edge Feature Used for Pyramid Alignment</h2></div>
+      <div class="description">
+        Instead of matching raw brightness, we align on an edge/gradient magnitude image. This is more robust across
+        channel brightness changes and leads to more precise alignment.
+      </div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img id="emir-edges" alt="Emir edge map" loading="lazy">
+          <div class="image-caption">Gradient-magnitude “edge” image used for alignment</div>
+        </div>
+      </div>
+    </div>
+
 
 
     <!-- LARGE -->
@@ -196,6 +186,11 @@
 
     // funktioniert sowohl vom Repo-Root als auch von /projects/project1/
     const PAGE_BASE = location.pathname.includes('/projects/project1/') ? '.' : './projects/project1';
+
+    // Set demo image sources (works from root and from /projects/project1/)
+    document.getElementById('emir-ssd').src   = `${PAGE_BASE}/outputs/demos/emir_single-ssd.jpg`;
+    document.getElementById('emir-edges').src = `${PAGE_BASE}/outputs/demos/emir_edges.jpg`;
+
 
     function imgUrl(folder, e){
       return `${PAGE_BASE}/outputs/${folder}/${e.image}_${e.method}.jpg`;
