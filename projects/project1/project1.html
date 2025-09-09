@@ -101,6 +101,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Emir L2 only (single-scale) -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Spotlight: Emir — plain L2 (single-scale)</h2></div>
+      <div class="description">Deliberately using plain SSD (no pyramid, no phase) shows clear misalignment. This motivates our coarse-to-fine and phase approaches.</div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./projects/project1/outputs/demos/emir_single-ssd.jpg" alt="emir single-ssd">
+          <div class="image-caption">Emir — SSD (single-scale) with visible color fringing</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edge feature visualization -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Edge Feature Used for Pyramid Alignment</h2></div>
+      <div class="description">We align channels on gradient magnitude (edge map) rather than raw intensities to be robust to brightness and color differences.</div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./projects/project1/outputs/demos/emir_edges.jpg" alt="emir edge map">
+          <div class="image-caption">Gradient-magnitude “edge” image used in the pyramid</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Small Images (single-scale) -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div>
@@ -156,9 +181,9 @@
   <script>
     function csvToRows(txt){
       const lines = txt.trim().split(/\r?\n/);
-      const head = lines.shift().split(",").map(s=>s.trim());
-      const idx = Object.fromEntries(head.map((h,i)=>[h,i]));
-      return lines.map(line=>{
+      const head  = lines.shift().split(",").map(s=>s.trim());
+      const idx   = Object.fromEntries(head.map((h,i)=>[h,i]));
+      return lines.filter(Boolean).map(line=>{
         const c = line.split(",");
         return {
           image:  (c[idx.image]||"").replace(/\.(jpg|png|tif|tiff)$/i,""),
@@ -169,43 +194,68 @@
       });
     }
     async function loadCSV(url){ const r=await fetch(url); if(!r.ok) return []; return csvToRows(await r.text()); }
-    const PAGE_BASE = (location.pathname.includes('/projects/project1/')) ? '.' : './projects/project1';
-    function imgUrl(folder, e){ return `${PAGE_BASE}/outputs/${folder}/${e.image}_${e.method}.jpg`; }
+
+    // funktioniert sowohl vom Repo-Root als auch von /projects/project1/
+    const PAGE_BASE = location.pathname.includes('/projects/project1/') ? '.' : './projects/project1';
+
+    function imgUrl(folder, e){
+      return `${PAGE_BASE}/outputs/${folder}/${e.image}_${e.method}.jpg`;
+    }
+
     function cell(e, folder){
       if(!e) return '—';
-      const url=imgUrl(folder,e);
-      const t = isFinite(e.time)?`${e.time.toFixed(2)}s`:'—';
+      const url = imgUrl(folder, e);
+      const t   = isFinite(e.time) ? `${e.time.toFixed(2)}s` : '—';
       return `<div class="cell">
-        <a href="${url}" target="_blank" rel="noopener"><img class="thumb" src="${url}" alt="${e.image} ${e.method}"></a>
+        <a href="${url}" target="_blank" rel="noopener">
+          <img class="thumb" src="${url}" alt="${e.image} ${e.method}">
+        </a>
         <div class="meta"><span class="time">${t}</span><br>
-        <small>G=(${e.dx_g}, ${e.dy_g}) &nbsp; R=(${e.dx_r}, ${e.dy_r})</small></div>
+          <small>G=(${e.dx_g}, ${e.dy_g}) &nbsp; R=(${e.dx_r}, ${e.dy_r})</small>
+        </div>
       </div>`;
     }
-    function fill(tableId, rows, methods, folder){
-      const by={};
-      rows.forEach(r=>{ if(!methods.includes(r.method)) return; (by[r.image]??={})[r.method]=r; });
-      const tb=document.querySelector(`#${tableId} tbody`); tb.innerHTML='';
-      Object.keys(by).sort().forEach(name=>{
-        const g=by[name];
-        tb.insertAdjacentHTML('beforeend', `
+
+    function fillDynamic(tableId, rows, methods, folder){
+      // rows -> { image: {method: row, ...}, ...}
+      const grouped = {};
+      rows.forEach(r => {
+        if (!methods.includes(r.method)) return;
+        (grouped[r.image] ??= {})[r.method] = r;
+      });
+
+      // baue Kopfzeile dynamisch
+      const table = document.getElementById(tableId);
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      thead.innerHTML = `<tr>
+        <th>Image</th>
+        ${methods.map(m => `<th>${m.replace('single-','').replace('pyramid-','Pyramid ').toUpperCase()}</th>`).join('')}
+      </tr>`;
+      tbody.innerHTML = '';
+
+      Object.keys(grouped).sort().forEach(name => {
+        const g = grouped[name];
+        const rowHtml = `
           <tr>
             <td class="name">${name}</td>
-            <td>${cell(g['single-ssd'], folder)}</td>
-            <td>${cell(g['single-ncc'], folder)}</td>
-            <td>${cell(g['phase'],      folder)}</td>
-          </tr>`);
+            ${methods.map(m => `<td>${cell(g[m], folder)}</td>`).join('')}
+          </tr>`;
+        tbody.insertAdjacentHTML('beforeend', rowHtml);
       });
     }
-    (async ()=>{
-      // SMALL (single-scale)
-      const small = await loadCSV(`${PAGE_BASE}/outputs/rgb_small/results.csv`);
-      fill('tbl-small', small, ['single-ssd','single-ncc','phase'], 'rgb_small');
 
-      // LARGE (bleibt wie zuvor, mit pyramid-ssd/ncc/phase)
-      const large = await loadCSV(`${PAGE_BASE}/outputs/rgb_large/results.csv`);
-      // … hier deine bestehende fillTable-Logik für die große Tabelle lassen …
+    (async ()=>{
+      // SMALL → single scale
+      const smallRows = await loadCSV(`${PAGE_BASE}/outputs/rgb_small/results.csv`);
+      fillDynamic('tbl-small', smallRows, ['single-ssd','single-ncc','phase'], 'rgb_small');
+
+      // LARGE → pyramid/ncc/phase
+      const largeRows = await loadCSV(`${PAGE_BASE}/outputs/rgb_large/results.csv`);
+      fillDynamic('tbl-large', largeRows, ['pyramid-ssd','pyramid-ncc','phase'], 'rgb_large');
     })();
 </script>
+
 
 
 </body>
