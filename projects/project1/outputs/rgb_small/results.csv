@@ -1,7 +1,10 @@
 image,method,dx_g,dy_g,dx_r,dy_r,time_sec,out_path
-cathedral,single-ssd,2,5,3,12,0.08449220657348633,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/cathedral_single-ssd.jpg
-cathedral,single-ncc,2,5,3,12,0.1755819320678711,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/cathedral_single-ncc.jpg
-monastery,single-ssd,2,-3,2,3,0.06112480163574219,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/monastery_single-ssd.jpg
-monastery,single-ncc,2,-3,2,3,0.17268896102905273,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/monastery_single-ncc.jpg
-tobolsk,single-ssd,3,3,3,6,0.05909919738769531,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/tobolsk_single-ssd.jpg
-tobolsk,single-ncc,3,3,3,6,0.1841139793395996,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/tobolsk_single-ncc.jpg
+cathedral,single-ssd,2,5,3,12,0.05807685852050781,projects/project1/outputs/rgb_small/cathedral_single-ssd.jpg
+cathedral,single-ncc,2,5,3,12,0.17033600807189941,projects/project1/outputs/rgb_small/cathedral_single-ncc.jpg
+cathedral,phase,2,5,3,12,0.006854057312011719,projects/project1/outputs/rgb_small/cathedral_phase.jpg
+monastery,single-ssd,2,-3,2,3,0.06719064712524414,projects/project1/outputs/rgb_small/monastery_single-ssd.jpg
+monastery,single-ncc,2,-3,2,3,0.17386198043823242,projects/project1/outputs/rgb_small/monastery_single-ncc.jpg
+monastery,phase,2,-3,2,3,0.009894132614135742,projects/project1/outputs/rgb_small/monastery_phase.jpg
+tobolsk,single-ssd,3,3,3,6,0.07261419296264648,projects/project1/outputs/rgb_small/tobolsk_single-ssd.jpg
+tobolsk,single-ncc,3,3,3,6,0.18502306938171387,projects/project1/outputs/rgb_small/tobolsk_single-ncc.jpg
+tobolsk,phase,2,3,3,6,0.009328842163085938,projects/project1/outputs/rgb_small/tobolsk_phase.jpg

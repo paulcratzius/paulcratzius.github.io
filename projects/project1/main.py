@@ -16,9 +16,11 @@ if __name__ == "__main__":
     if IN_SMALL.exists():
         print(f"[info] small in  = {IN_SMALL}")
         print(f"[info] small out = {OUT_SMALL}")
-        run_batch(str(IN_SMALL), str(OUT_SMALL),
-                  methods=("single-ssd","single-ncc"),
-                  process_one_func=solution.process_one)
+        run_batch(
+            in_dir="projects/project1/images/small",
+            out_dir="projects/project1/outputs/rgb_small",
+            methods=('single-ssd','single-ncc','phase'),   # phase optional
+            process_one_func=solution.process_one)
 
     if IN_LARGE.exists():
         print(f"[info] large in  = {IN_LARGE}")
