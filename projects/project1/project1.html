@@ -5,12 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Project 1: Colorizing the Prokudin-Gorskii Collection</title>
   <style>
-    /* ====== Reuse Project 0 look & feel ====== */
     * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-      background:#ffffff; color:#000; min-height:100vh; padding:40px 20px;
-    }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#fff; color:#000; min-height:100vh; padding:40px 20px; }
     .container{ max-width:1000px; margin:0 auto; }
     .header{ text-align:center; margin-bottom:30px; }
     h1{ font-size:2rem; font-weight:700; margin-bottom:6px; color:#111; }
@@ -19,46 +15,22 @@
     .section-title{ display:flex; align-items:center; margin-bottom:16px; }
     .section-line{ width:4px; height:22px; background:#111; margin-right:10px; border-radius:2px; }
     .section-title h2{ font-size:1.2rem; font-weight:600; color:#111; }
-    .image-grid{
-      display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-      gap:16px; margin-bottom:10px;
-    }
+    .image-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-bottom:10px; }
     .image-container{ background:#fff; border-radius:10px; padding:10px; border:1px solid #e5e5e5; }
     .image-container img{ width:100%; height:auto; border-radius:6px; display:block; }
     .image-caption{ margin-top:8px; text-align:center; color:#444; font-size:.9rem; font-weight:500; }
     .description{ background:#fafafa; border-radius:10px; padding:12px 14px; border:1px solid #eee; color:#333; line-height:1.5; font-size:.95rem; }
-    .back-button{
-      position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-      background:#fff; border:1px solid #ddd; border-radius:10px;
-      padding:12px 20px; color:#000; font-size:1rem; font-weight:500; cursor:pointer;
-      transition:all .2s ease; text-decoration:none; display:inline-block;
-    }
+    .back-button{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ddd; border-radius:10px; padding:12px 20px; color:#000; font-size:1rem; font-weight:500; cursor:pointer; transition:all .2s ease; text-decoration:none; display:inline-block; }
     .back-button:hover{ transform:translateX(-50%) translateY(-2px); background:#f5f5f5; }
-    .single-image{ display:flex; justify-content:center; }
-    .single-image .image-container{ max-width:600px; }
     table{ width:100%; border-collapse:collapse; font-size:.95rem; }
     th, td{ padding:10px 12px; border-bottom:1px solid #eaeaea; vertical-align:top; }
     th{ text-align:left; background:#fafafa; }
-    code{ background:#f6f6f7; padding:1px 6px; border-radius:4px; }
-    .pill{ display:inline-block; font-size:.85rem; background:#f1f3f5; padding:2px 8px; border-radius:999px; margin-right:6px; }
-    .cmp{ width:100%; border-collapse:collapse; margin-top:14px; }
-    .cmp th, .cmp td{ border-bottom:1px solid #eaeaea; padding:12px 10px; vertical-align:top; }
-    .cmp th{ background:#fafafa; text-align:left; }
-    .cell{
-      display:flex; flex-direction:column; gap:6px;
-    }
-    .thumb{
-      width:180px; max-width:100%; height:auto; border-radius:6px; display:block;
-      border:1px solid #e8e8e8;
-    }
+    .cell{ display:flex; flex-direction:column; gap:6px; }
+    .thumb{ width:180px; max-width:100%; height:auto; border-radius:6px; display:block; border:1px solid #e8e8e8; }
     .meta{ font-size:.9rem; color:#444; line-height:1.3; }
     .meta .time{ font-weight:600; }
-    .meta small{ color:#666; }
     .name{ font-weight:600; }
-    .badge{ display:inline-block; font-size:.78rem; background:#f1f3f5; padding:2px 8px; border-radius:999px; margin-right:6px; }
-    @media (max-width:700px){
-      .thumb{ width:140px; }
-    }
+    @media (max-width:700px){ .thumb{ width:140px; } }
   </style>
 </head>
 <body>
@@ -121,18 +93,33 @@
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Edge Feature Used for Pyramid Alignment</h2></div>
       <div class="description">
-        Instead of matching raw brightness, we align on an edge/gradient magnitude image. This is more robust across
-        channel brightness changes and leads to more precise alignment.
+        Instead of matching raw brightness, we align on a gradient-magnitude (edge) image. This is more robust to channel
+        brightness differences and produces more precise alignment.
       </div>
       <div class="image-grid">
         <div class="image-container">
           <img id="emir-edges" alt="Emir edge map" loading="lazy">
-          <div class="image-caption">Gradient-magnitude “edge” image used for alignment</div>
+          <div class="image-caption">Gradient-magnitude “edge” image used in the pyramid</div>
         </div>
       </div>
     </div>
 
-
+    <!-- SMALL -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Small Images (Low Resolution)</h2></div>
+      <div class="description">Exhaustive <b>single-scale</b> alignment (SSD/NCC) and (optionally) phase correlation.</div>
+      <table class="cmp" id="tbl-small">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>SSD (single)</th>
+            <th>NCC (single)</th>
+            <th>Phase Corr.</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
     <!-- LARGE -->
     <div class="section">
@@ -151,23 +138,22 @@
       </table>
     </div>
 
-
-
-    <!-- Notes / Discussion -->
+    <!-- Discussion -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Discussion</h2></div>
       <div class="description">
         The edge-based pyramid stabilizes SSD/NCC under illumination and texture changes by matching gradients (central differences / Prewitt).
         Phase correlation is brightness-invariant and provides a good coarse initialization on the smallest level.
-        Parameters used: crop=0.10, base_win=20, target_min≈120, levels≤6.
+        Parameters: crop=0.10, base_win=20, target_min≈120, levels≤6.
       </div>
     </div>
   </div>
 
   <a href="../../index.html" class="back-button">← Back to CS 180</a>
 
-  <!-- ===== CSV → Comparison Table ===== -->
+  <!-- ===== CSV → Comparison Tables + Demo image paths ===== -->
   <script>
+    // --- CSV helpers ---
     function csvToRows(txt){
       const lines = txt.trim().split(/\r?\n/);
       const head  = lines.shift().split(",").map(s=>s.trim());
@@ -182,75 +168,69 @@
         };
       });
     }
-    async function loadCSV(url){ const r=await fetch(url); if(!r.ok) return []; return csvToRows(await r.text()); }
 
-    // funktioniert sowohl vom Repo-Root als auch von /projects/project1/
+    async function loadCSV(url){
+      try{
+        const r = await fetch(url, {cache:"no-store"});
+        if(!r.ok){ console.warn("[CSV] fetch failed:", url, r.status, r.statusText); return []; }
+        return csvToRows(await r.text());
+      }catch(e){
+        console.error("[CSV] fetch error:", url, e); return [];
+      }
+    }
+
+    // Work from repo root and from /projects/project1/
     const PAGE_BASE = location.pathname.includes('/projects/project1/') ? '.' : './projects/project1';
 
-    // Set demo image sources (works from root and from /projects/project1/)
-    document.getElementById('emir-ssd').src   = `${PAGE_BASE}/outputs/demos/emir_single-ssd.jpg`;
-    document.getElementById('emir-edges').src = `${PAGE_BASE}/outputs/demos/emir_edges.jpg`;
+    // Demo images
+    const emirSsdEl   = document.getElementById('emir-ssd');
+    const emirEdgesEl = document.getElementById('emir-edges');
+    if (emirSsdEl)   emirSsdEl.src   = `${PAGE_BASE}/outputs/demos/emir_single-ssd.jpg`;
+    if (emirEdgesEl) emirEdgesEl.src = `${PAGE_BASE}/outputs/demos/emir_edges.jpg`;
 
-
+    // Table helpers
     function imgUrl(folder, e){
       return `${PAGE_BASE}/outputs/${folder}/${e.image}_${e.method}.jpg`;
     }
-
     function cell(e, folder){
       if(!e) return '—';
       const url = imgUrl(folder, e);
-      const t   = isFinite(e.time) ? `${e.time.toFixed(2)}s` : '—';
+      const t   = Number.isFinite(e.time) ? `${e.time.toFixed(2)}s` : '—';
       return `<div class="cell">
-        <a href="${url}" target="_blank" rel="noopener">
-          <img class="thumb" src="${url}" alt="${e.image} ${e.method}">
-        </a>
-        <div class="meta"><span class="time">${t}</span><br>
-          <small>G=(${e.dx_g}, ${e.dy_g}) &nbsp; R=(${e.dx_r}, ${e.dy_r})</small>
-        </div>
+        <a href="${url}" target="_blank" rel="noopener"><img class="thumb" src="${url}" alt="${e.image} ${e.method}"></a>
+        <div class="meta"><span class="time">${t}</span><br><small>G=(${e.dx_g}, ${e.dy_g}) &nbsp; R=(${e.dx_r}, ${e.dy_r})</small></div>
       </div>`;
     }
-
     function fillDynamic(tableId, rows, methods, folder){
-      // rows -> { image: {method: row, ...}, ...}
       const grouped = {};
-      rows.forEach(r => {
-        if (!methods.includes(r.method)) return;
-        (grouped[r.image] ??= {})[r.method] = r;
-      });
-
-      // baue Kopfzeile dynamisch
+      rows.forEach(r => { if(methods.includes(r.method)){ (grouped[r.image] ??= {})[r.method] = r; }});
       const table = document.getElementById(tableId);
       const thead = table.querySelector('thead');
       const tbody = table.querySelector('tbody');
-      thead.innerHTML = `<tr>
-        <th>Image</th>
-        ${methods.map(m => `<th>${m.replace('single-','').replace('pyramid-','Pyramid ').toUpperCase()}</th>`).join('')}
-      </tr>`;
+      thead.innerHTML = `<tr><th>Image</th>${methods.map(m => `<th>${m.replace('single-','').replace('pyramid-','Pyramid ').toUpperCase()}</th>`).join('')}</tr>`;
       tbody.innerHTML = '';
-
-      Object.keys(grouped).sort().forEach(name => {
+      const names = Object.keys(grouped).sort();
+      if(names.length===0){ tbody.innerHTML = `<tr><td colspan="${methods.length+1}">No rows found. Open console to check CSV paths.</td></tr>`; return; }
+      names.forEach(name=>{
         const g = grouped[name];
-        const rowHtml = `
-          <tr>
-            <td class="name">${name}</td>
-            ${methods.map(m => `<td>${cell(g[m], folder)}</td>`).join('')}
-          </tr>`;
-        tbody.insertAdjacentHTML('beforeend', rowHtml);
+        tbody.insertAdjacentHTML('beforeend', `<tr>
+          <td class="name">${name}</td>
+          ${methods.map(m => `<td>${cell(g[m], folder)}</td>`).join('')}
+        </tr>`);
       });
     }
 
     (async ()=>{
-      // SMALL → single scale
-      const smallRows = await loadCSV(`${PAGE_BASE}/outputs/rgb_small/results.csv`);
+      // SMALL (single-scale)
+      const smallCSV  = `${PAGE_BASE}/outputs/rgb_small/results.csv`;
+      const smallRows = await loadCSV(smallCSV);
       fillDynamic('tbl-small', smallRows, ['single-ssd','single-ncc','phase'], 'rgb_small');
 
-      // LARGE → pyramid/ncc/phase
-      const largeRows = await loadCSV(`${PAGE_BASE}/outputs/rgb_large/results.csv`);
+      // LARGE (pyramid/phase)
+      const largeCSV  = `${PAGE_BASE}/outputs/rgb_large/results.csv`;
+      const largeRows = await loadCSV(largeCSV);
       fillDynamic('tbl-large', largeRows, ['pyramid-ssd','pyramid-ncc','phase'], 'rgb_large');
     })();
-</script>
-
-
-
+  </script>
 </body>
 </html>
