@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 0: Becoming Friends with Your Camera</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #000000;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #111111;
+        }
+        
+        .date {
+            font-size: 1rem;
+            color: #555555;
+            font-weight: 400;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .section-line {
+            width: 4px;
+            height: 22px;
+            background: #111111;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+        
+        .section-title h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #111111;
+        }
+        
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .image-container {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid #e5e5e5;
+        }
+        
+        .image-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 6px;
+            box-shadow: none;
+        }
+        
+        .image-caption {
+            margin-top: 8px;
+            text-align: center;
+            color: #444444;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .description {
+            background: #fafafa;
+            border-radius: 10px;
+            padding: 12px 14px;
+            border: 1px solid #eeeeee;
+            color: #333333;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+        
+        .back-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 10px;
+            padding: 12px 20px;
+            color: #000000;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: none;
+        }
+        
+        .back-button:hover {
+            transform: translateX(-50%) translateY(-2px);
+            background: #f5f5f5;
+        }
+        
+        .single-image {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .single-image .image-container {
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Project 0: Becoming Friends with Your Camera</h1>
+            <div class="date">9/2/25</div>
+        </div>
+        
+        <!-- Part 1: Selfie -->
+        <div class="section">
+            <div class="section-title">
+                <div class="section-line"></div>
+                <h2>Part 1. Selfie of a friend</h2>
+            </div>
+            
+            <div class="image-grid">
+                <div class="image-container">
+                    <img src="./images/project0-close.jpg" alt="Selfie 1" onerror="this.style.display='none'">
+                    <div class="image-caption">Picture up close</div>
+                </div>
+                <div class="image-container">
+                    <img src="./images/project0-zoom.jpg" alt="Selfie 2" onerror="this.style.display='none'">
+                    <div class="image-caption">Picture with zoom</div>
+                </div>
+            </div>
+            
+            <div class="description">
+                Two versions of the same portrait: one taken close, one with more zoom to compare perspective and framing.
+            </div>
+        </div>
+        
+        <!-- Part 2: Architectural Perspective -->
+        <div class="section">
+            <div class="section-title">
+                <div class="section-line"></div>
+                <h2>Part 2. Architectural Perspective Compression</h2>
+            </div>
+            
+            <div class="image-grid">
+                <div class="image-container">
+                    <img src="./images/project0-street-close.jpg" alt="Far away with zoom" onerror="this.style.display='none'">
+                    <div class="image-caption">Picture up close</div>
+                </div>
+                <div class="image-container">
+                    <img src="./images/project0-street-zoom.jpg" alt="Close up with less zoom" onerror="this.style.display='none'">
+                    <div class="image-caption">Picture with zoom</div>
+                </div>
+            </div>
+            
+            <div class="description">
+                Same scene from different distances: zoom flattens space; moving closer restores depth.
+            </div>
+        </div>
+        
+        <!-- Part 3: Dolly Zoom -->
+        <div class="section">
+            <div class="section-title">
+                <div class="section-line"></div>
+                <h2>Part 3. Dolly Zoom</h2>
+            </div>
+            
+            <div class="single-image">
+                <div class="image-container">
+                    <img src="images/project0-dolly.gif" alt="Dolly zoom effect" onerror="this.style.display='none'">
+                    <div class="image-caption">Dolly zoom gif demonstrating the effect</div>
+                </div>
+            </div>
+            
+            <div class="description">
+                Moving the camera while zooming the opposite way keeps the subject size constant but warps the background.
+            </div>
+        </div>
+    </div>
+    
+    <a href="../../index.html" class="back-button">← Back to CS 180</a>
+</body>
+</html>

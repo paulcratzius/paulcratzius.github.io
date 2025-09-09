@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project 1: Colorizing the Prokudin-Gorskii Collection</title>
+  <style>
+    /* ====== Reuse Project 0 look & feel ====== */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background:#ffffff; color:#000; min-height:100vh; padding:40px 20px;
+    }
+    .container{ max-width:1000px; margin:0 auto; }
+    .header{ text-align:center; margin-bottom:30px; }
+    h1{ font-size:2rem; font-weight:700; margin-bottom:6px; color:#111; }
+    .date{ font-size:1rem; color:#555; font-weight:400; }
+    .section{ margin-bottom:40px; }
+    .section-title{ display:flex; align-items:center; margin-bottom:16px; }
+    .section-line{ width:4px; height:22px; background:#111; margin-right:10px; border-radius:2px; }
+    .section-title h2{ font-size:1.2rem; font-weight:600; color:#111; }
+    .image-grid{
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:16px; margin-bottom:10px;
+    }
+    .image-container{ background:#fff; border-radius:10px; padding:10px; border:1px solid #e5e5e5; }
+    .image-container img{ width:100%; height:auto; border-radius:6px; display:block; }
+    .image-caption{ margin-top:8px; text-align:center; color:#444; font-size:.9rem; font-weight:500; }
+    .description{ background:#fafafa; border-radius:10px; padding:12px 14px; border:1px solid #eee; color:#333; line-height:1.5; font-size:.95rem; }
+    .back-button{
+      position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+      background:#fff; border:1px solid #ddd; border-radius:10px;
+      padding:12px 20px; color:#000; font-size:1rem; font-weight:500; cursor:pointer;
+      transition:all .2s ease; text-decoration:none; display:inline-block;
+    }
+    .back-button:hover{ transform:translateX(-50%) translateY(-2px); background:#f5f5f5; }
+    .single-image{ display:flex; justify-content:center; }
+    .single-image .image-container{ max-width:600px; }
+    table{ width:100%; border-collapse:collapse; font-size:.95rem; }
+    th, td{ padding:10px 12px; border-bottom:1px solid #eaeaea; vertical-align:top; }
+    th{ text-align:left; background:#fafafa; }
+    code{ background:#f6f6f7; padding:1px 6px; border-radius:4px; }
+    .pill{ display:inline-block; font-size:.85rem; background:#f1f3f5; padding:2px 8px; border-radius:999px; margin-right:6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Project 1: Colorizing the Prokudin-Gorskii Collection</h1>
+      <div class="date">CS180 • Fall 2025</div>
+    </div>
+
+    <!-- Overview -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Overview</h2></div>
+      <div class="description">
+        I split B/G/R glass plates (top→bottom) into channels, crop borders (10% each side), convert to float,
+        and align <span class="pill">G</span> and <span class="pill">R</span> to <span class="pill">B</span>.
+        Implemented alignment methods: <b>SSD</b>, <b>NCC</b>, and <b>Phase Correlation</b>.
+        For large .tif images, I use a <b>coarse-to-fine edge-based pyramid</b> (downscale ×2, 5 levels; central differences / Prewitt edges).
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Pipeline</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./outputs/rgb_small/plate_raw.jpg" alt="raw plate" onerror="this.style.display='none'">
+          <div class="image-caption">Raw plate (B/G/R stacked top→bottom)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/rgb_small/crop_debug.jpg" alt="crop" onerror="this.style.display='none'">
+          <div class="image-caption">Border crop (10% each side)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/rgb_small/downscaled_5x.jpg" alt="downscaled" onerror="this.style.display='none'">
+          <div class="image-caption">Downscale ×2 for 5 steps (coarsest level ~100–120px)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/rgb_small/edges_level0.jpg" alt="edges" onerror="this.style.display='none'">
+          <div class="image-caption">Edge map (central differences / Prewitt)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected Results (small preview set) -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Selected Results</h2></div>
+      <div class="image-grid">
+        <!-- Ersetze die Dateinamen mit deinen eigentlichen JPGs -->
+        <div class="image-container">
+          <img src="./outputs/rgb_large/emir_pyramid-ncc.jpg" alt="emir" onerror="this.style.display='none'">
+          <div class="image-caption">Emir — pyramid NCC (phase init + edges)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/rgb_large/monastery_pyramid-ssd.jpg" alt="monastery" onerror="this.style.display='none'">
+          <div class="image-caption">Monastery — pyramid SSD</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/rgb_large/cathedral_phase.jpg" alt="cathedral" onerror="this.style.display='none'">
+          <div class="image-caption">Cathedral — phase correlation</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected Results (large images) -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Selected Results</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./outputs/rgb_large/church_pyramid-ncc.jpg" alt="church pyramid-ncc" onerror="this.style.display='none'">
+          <div class="image-caption">Church — pyramid NCC</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/rgb_large/emir_pyramid-ssd.jpg" alt="emir pyramid-ssd" onerror="this.style.display='none'">
+          <div class="image-caption">Emir — pyramid SSD</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/rgb_large/harvesters_phase.jpg" alt="harvesters phase" onerror="this.style.display='none'">
+          <div class="image-caption">Harvesters — phase correlation</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/rgb_large/lastochikino_pyramid-ncc.jpg" alt="lastochikino pyramid-ncc" onerror="this.style.display='none'">
+          <div class="image-caption">Lastochikino — pyramid NCC</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/rgb_large/melons_phase.jpg" alt="melons phase" onerror="this.style.display='none'">
+          <div class="image-caption">Melons — phase correlation</div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>All Results (Large Images)</h2></div>
+      <div id="all-results"></div>
+    </div>
+    <style>
+      .results-group { margin-bottom: 28px; }
+      .results-title { font-weight: 600; margin-bottom: 10px; font-size: 1.05rem; }
+      .method-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+      }
+      .method-card {
+        border:1px solid #e5e5e5; border-radius:10px; padding:10px; background:#fff;
+      }
+      .method-card img { width:100%; height:auto; border-radius:6px; display:block; }
+      .method-caption { margin-top:8px; color:#444; font-size:.9rem; }
+      .badge { display:inline-block; font-size:.78rem; background:#f1f3f5; padding:2px 8px; border-radius:999px; margin-right:6px; }
+      .time { font-weight:600; }
+    </style>
+
+
+    <!-- Notes / Discussion -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Discussion</h2></div>
+      <div class="description">
+        The edge-based pyramid stabilizes SSD/NCC under illumination and texture changes by matching gradients (central differences / Prewitt).
+        Phase correlation is brightness-invariant and provides a good coarse initialization on the smallest level.
+        Parameters used: crop=0.10, base_win=20, target_min≈120, levels≤6.
+      </div>
+    </div>
+  </div>
+
+  <a href="../../index.html" class="back-button">← Back to CS 180</a>
+
+  <!-- ===== CSV → Comparison Table ===== -->
+  <script>
+    // Erwartete CSV-Header: image,method,dx_g,dy_g,dx_r,dy_r,time_sec,out_path
+    async function loadCSV(url){
+      const res = await fetch(url);
+      if(!res.ok) return [];
+      const text = await res.text();
+      const lines = text.trim().split(/\r?\n/);
+      const header = lines.shift().split(",");
+      const idx = Object.fromEntries(header.map((h,i)=>[h.trim(), i]));
+      return lines.map(line=>{
+        const cells = line.split(",");
+        return {
+          image:   cells[idx.image],
+          method:  cells[idx.method],
+          dx_g:    cells[idx.dx_g], dy_g: cells[idx.dy_g],
+          dx_r:    cells[idx.dx_r], dy_r: cells[idx.dy_r],
+          time:    parseFloat(cells[idx.time_sec] || "0"),
+          out:     cells[idx.out_path] || ""
+        };
+      });
+    }
+
+    function fmtRow(entry){
+      if(!entry) return "—";
+      const offG = `G=(${entry.dx_g}, ${entry.dy_g})`;
+      const offR = `R=(${entry.dx_r}, ${entry.dy_r})`;
+      const t    = isFinite(entry.time) ? `${entry.time.toFixed(3)}s` : "—";
+      // Linke den Output, wenn vorhanden
+      const link = entry.out ? `<br><a href="${entry.out}" target="_blank">view</a>` : "";
+      return `${t}<br>${offG}<br>${offR}${link}`;
+    }
+
+    (async ()=>{
+      // Lade die großen Ergebnisse
+      const rows = await loadCSV("./outputs/rgb_large/results.csv");
+      // Wir wollen nur diese 3 Methoden vergleichen
+      const targetMethods = new Set(["pyramid-ssd","pyramid-ncc","phase"]);
+
+      // Nach Bildname gruppieren
+      const byImage = {};
+      rows.forEach(r=>{
+        if(!targetMethods.has(r.method)) return;
+        const name = r.image.replace(/\.(jpg|png|tif|tiff)$/i,"");
+        byImage[name] = byImage[name] || {};
+        byImage[name][r.method] = r;
+      });
+
+      // Tabelle füllen (alphabetisch)
+      const tbody = document.querySelector("#cmp tbody");
+      Object.keys(byImage).sort().forEach(name=>{
+        const grp = byImage[name];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${name}</td>
+          <td>${fmtRow(grp["pyramid-ssd"])}</td>
+          <td>${fmtRow(grp["pyramid-ncc"])}</td>
+          <td>${fmtRow(grp["phase"])}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    })();
+  </script>
+  <script>
+async function loadCSV(url){
+  const res = await fetch(url);
+  if(!res.ok) { console.warn("CSV not found:", url); return []; }
+  const text = await res.text();
+  const lines = text.trim().split(/\r?\n/);
+  const header = lines.shift().split(",").map(h => h.trim());
+  const idx = Object.fromEntries(header.map((h,i)=>[h, i]));
+  return lines.map(line => {
+    const c = line.split(",");
+    return {
+      image:  c[idx.image],
+      method: c[idx.method],
+      dx_g:   c[idx.dx_g],  dy_g: c[idx.dy_g],
+      dx_r:   c[idx.dx_r],  dy_r: c[idx.dy_r],
+      time:   parseFloat(c[idx.time_sec] || "0"),
+      out:    (c[idx.out_path] || "").replace(/^\.?\/*/, "./") // sicher relativ
+    };
+  });
+}
+
+function methodLabel(m){
+  if(m === "pyramid-ssd") return "Pyramid SSD";
+  if(m === "pyramid-ncc") return "Pyramid NCC";
+  if(m === "phase")       return "Phase Corr.";
+  return m;
+}
+
+function buildCard(entry){
+  if(!entry) return "";
+  const time = isFinite(entry.time) ? `${entry.time.toFixed(3)}s` : "—";
+  const offG = `G=(${entry.dx_g}, ${entry.dy_g})`;
+  const offR = `R=(${entry.dx_r}, ${entry.dy_r})`;
+  const alt  = `${entry.image} ${entry.method}`;
+  return `
+    <div class="method-card">
+      <img src="${entry.out}" alt="${alt}" onerror="this.style.display='none'">
+      <div class="method-caption">
+        <span class="badge">${methodLabel(entry.method)}</span>
+        <span class="time">${time}</span><br>
+        <small>${offG} &nbsp; ${offR}</small>
+      </div>
+    </div>`;
+}
+
+(async () => {
+  const csv = "./outputs/rgb_large/results.csv";
+  const rows = await loadCSV(csv);
+  if(!rows.length){ return; }
+
+  // Nur die drei gewünschten Methoden
+  const keep = new Set(["pyramid-ssd","pyramid-ncc","phase"]);
+  const byImg = {};
+  for(const r of rows){
+    if(!keep.has(r.method)) continue;
+    byImg[r.image] ??= {};
+    byImg[r.image][r.method] = r;
+  }
+
+  // Nach Bildname sortieren und rendern
+  const container = document.getElementById("all-results");
+  Object.keys(byImg).sort().forEach(name => {
+    const g = byImg[name];
+    const cards = [g["pyramid-ssd"], g["pyramid-ncc"], g["phase"]]
+      .map(buildCard).join("");
+
+    const block = document.createElement("div");
+    block.className = "results-group";
+    block.innerHTML = `
+      <div class="results-title">${name}</div>
+      <div class="method-grid">
+        ${cards}
+      </div>`;
+    container.appendChild(block);
+  });
+})();
+</script>
+
+</body>
+</html>
