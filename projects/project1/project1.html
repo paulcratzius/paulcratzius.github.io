@@ -138,6 +138,27 @@
       </table>
     </div>
 
+    <!-- LARGE – Extra set -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div>
+        <h2>Large Images (Extra Set)</h2>
+      </div>
+      <div class="description">
+        Same pipeline as above, evaluated on three additional high-resolution plates.
+      </div>
+      <table class="cmp" id="tbl-large-extra">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Pyramid SSD</th>
+            <th>Pyramid NCC</th>
+            <th>Phase Corr.</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
     <!-- Discussion -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Discussion</h2></div>
@@ -221,16 +242,24 @@
     }
 
     (async ()=>{
-      // SMALL (single-scale)
-      const smallCSV  = `${PAGE_BASE}/outputs/rgb_small/results.csv`;
-      const smallRows = await loadCSV(smallCSV);
-      fillDynamic('tbl-small', smallRows, ['single-ssd','single-ncc','phase'], 'rgb_small');
+    // SMALL (single-scale)
+    const smallCSV = `${PAGE_BASE}/outputs/rgb_small/results.csv`;
+    console.log("[small] loading", smallCSV);
+    const smallRows = await loadCSV(smallCSV);
+    fillDynamic('tbl-small', smallRows, ['single-ssd','single-ncc','phase'], 'rgb_small');
 
-      // LARGE (pyramid/phase)
-      const largeCSV  = `${PAGE_BASE}/outputs/rgb_large/results.csv`;
-      const largeRows = await loadCSV(largeCSV);
-      fillDynamic('tbl-large', largeRows, ['pyramid-ssd','pyramid-ncc','phase'], 'rgb_large');
-    })();
-  </script>
+    // LARGE (original)
+    const largeCSV = `${PAGE_BASE}/outputs/rgb_large/results.csv`;
+    console.log("[large] loading", largeCSV);
+    const largeRows = await loadCSV(largeCSV);
+    fillDynamic('tbl-large', largeRows, ['pyramid-ssd','pyramid-ncc','phase'], 'rgb_large');
+
+    // LARGE – EXTRA
+    const extraCSV = `${PAGE_BASE}/outputs/rgb_large_extra/results.csv`;
+    console.log("[large-extra] loading", extraCSV);
+    const extraRows = await loadCSV(extraCSV);
+    fillDynamic('tbl-large-extra', extraRows, ['pyramid-ssd','pyramid-ncc','phase'], 'rgb_large_extra');
+  })();
+</script>
 </body>
 </html>

@@ -1,30 +1,56 @@
-# projects/project1/main.py
 from pathlib import Path
 from runner import run_batch
-import solution   # damit wir solution.process_one übergeben können
+from solution import process_one
+
+def ensure_dir(path):
+    Path(path).mkdir(parents=True, exist_ok=True)
+
+# project root
+ROOT = Path(__file__).resolve().parent
+
+# input / output folders
+IN_SMALL  = ROOT / "images" / "small"
+OUT_SMALL = ROOT / "outputs" / "rgb_small"
+
+IN_LARGE  = ROOT / "images" / "large"
+OUT_LARGE = ROOT / "outputs" / "rgb_large"
+
+IN_EXTRA  = ROOT / "images" / "large-extra"
+OUT_EXTRA = ROOT / "outputs" / "rgb_large_extra"
+
 
 if __name__ == "__main__":
-    BASE = Path(__file__).resolve().parent
-    IN_ROOT = BASE / "images"
-    OUT_ROOT = BASE / "outputs"
+    
+    
+    # small
+    print("[info] small in  =", IN_SMALL.resolve())
+    print("[info] small out =", OUT_SMALL.resolve())
+    ensure_dir(OUT_SMALL)
+    run_batch(
+        str(IN_SMALL), str(OUT_SMALL),
+        process_one_func=process_one,
+        methods=("single-ssd","single-ncc","phase"),
+        csv_log="results.csv",
+    )
 
-    IN_SMALL  = IN_ROOT / "small"
-    IN_LARGE  = IN_ROOT / "large"
-    OUT_SMALL = OUT_ROOT / "rgb_small"
-    OUT_LARGE = OUT_ROOT / "rgb_large"
-
-    if IN_SMALL.exists():
-        print(f"[info] small in  = {IN_SMALL}")
-        print(f"[info] small out = {OUT_SMALL}")
-        run_batch(
-            in_dir="projects/project1/images/small",
-            out_dir="projects/project1/outputs/rgb_small",
-            methods=('single-ssd','single-ncc','phase'),   # phase optional
-            process_one_func=solution.process_one)
-
-    if IN_LARGE.exists():
-        print(f"[info] large in  = {IN_LARGE}")
-        print(f"[info] large out = {OUT_LARGE}")
-        run_batch(str(IN_LARGE), str(OUT_LARGE),
-                  methods=("pyramid-ssd","pyramid-ncc","phase"),
-                  process_one_func=solution.process_one)
+    # large
+    print("[info] large in  =", IN_LARGE.resolve())
+    print("[info] large out =", OUT_LARGE.resolve())
+    ensure_dir(OUT_LARGE)
+    run_batch(
+        str(IN_LARGE), str(OUT_LARGE),
+        process_one_func=process_one,
+        methods=("pyramid-ssd","pyramid-ncc","phase"),
+        csv_log="results.csv",
+    )
+    
+    # extra large
+    print("[info] extra in  =", IN_EXTRA.resolve())
+    print("[info] extra out =", OUT_EXTRA.resolve())
+    ensure_dir(OUT_EXTRA)
+    run_batch(
+        str(IN_EXTRA), str(OUT_EXTRA),
+        process_one_func=process_one,
+        methods=("pyramid-ssd","pyramid-ncc","phase"),
+        csv_log="results.csv",
+    )
