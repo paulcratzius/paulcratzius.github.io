@@ -1,0 +1,16 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore macOS metadata
+.DS_Store
+
+# Ignore large raw images
+*.tif
+*.tiff
+
+# Ignore outputs if you don’t want to track them
+# (du kannst auch nur die CSVs behalten und die JPGs)
+projects/project1/outputs/*
+!projects/project1/outputs/**/*.csv

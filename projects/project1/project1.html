@@ -41,6 +41,24 @@
     th{ text-align:left; background:#fafafa; }
     code{ background:#f6f6f7; padding:1px 6px; border-radius:4px; }
     .pill{ display:inline-block; font-size:.85rem; background:#f1f3f5; padding:2px 8px; border-radius:999px; margin-right:6px; }
+    .cmp{ width:100%; border-collapse:collapse; margin-top:14px; }
+    .cmp th, .cmp td{ border-bottom:1px solid #eaeaea; padding:12px 10px; vertical-align:top; }
+    .cmp th{ background:#fafafa; text-align:left; }
+    .cell{
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .thumb{
+      width:180px; max-width:100%; height:auto; border-radius:6px; display:block;
+      border:1px solid #e8e8e8;
+    }
+    .meta{ font-size:.9rem; color:#444; line-height:1.3; }
+    .meta .time{ font-weight:600; }
+    .meta small{ color:#666; }
+    .name{ font-weight:600; }
+    .badge{ display:inline-block; font-size:.78rem; background:#f1f3f5; padding:2px 8px; border-radius:999px; margin-right:6px; }
+    @media (max-width:700px){
+      .thumb{ width:140px; }
+    }
   </style>
 </head>
 <body>
@@ -150,6 +168,41 @@
       .time { font-weight:600; }
     </style>
 
+    <!-- SMALL -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Small Images (Low Resolution)</h2></div>
+      <div class="description">Exhaustive single-scale alignment (SSD/NCC) and phase correlation on JPGs.</div>
+      <table class="cmp" id="tbl-small">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Pyramid SSD</th>
+            <th>Pyramid NCC</th>
+            <th>Phase Corr.</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- LARGE -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Large Images (High Resolution)</h2></div>
+      <div class="description">Coarse-to-fine edge pyramid for SSD/NCC; brightness-invariant phase correlation.</div>
+      <table class="cmp" id="tbl-large">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Pyramid SSD</th>
+            <th>Pyramid NCC</th>
+            <th>Phase Corr.</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+
 
     <!-- Notes / Discussion -->
     <div class="section">
@@ -166,144 +219,84 @@
 
   <!-- ===== CSV → Comparison Table ===== -->
   <script>
-    // Erwartete CSV-Header: image,method,dx_g,dy_g,dx_r,dy_r,time_sec,out_path
     async function loadCSV(url){
       const res = await fetch(url);
       if(!res.ok) return [];
-      const text = await res.text();
-      const lines = text.trim().split(/\r?\n/);
-      const header = lines.shift().split(",");
-      const idx = Object.fromEntries(header.map((h,i)=>[h.trim(), i]));
+      const txt = await res.text();
+      const lines = txt.trim().split(/\r?\n/);
+      const head = lines.shift().split(",").map(s=>s.trim());
+      const idx = Object.fromEntries(head.map((h,i)=>[h,i]));
       return lines.map(line=>{
-        const cells = line.split(",");
+        const c = line.split(",");
         return {
-          image:   cells[idx.image],
-          method:  cells[idx.method],
-          dx_g:    cells[idx.dx_g], dy_g: cells[idx.dy_g],
-          dx_r:    cells[idx.dx_r], dy_r: cells[idx.dy_r],
-          time:    parseFloat(cells[idx.time_sec] || "0"),
-          out:     cells[idx.out_path] || ""
+          image:  (c[idx.image]  || "").replace(/\.(jpg|png|tif|tiff)$/i,""),
+          method: (c[idx.method] || ""),
+          dx_g:   c[idx.dx_g],  dy_g: c[idx.dy_g],
+          dx_r:   c[idx.dx_r],  dy_r: c[idx.dy_r],
+          time:   parseFloat(c[idx.time_sec] || "0"),
+          out:    (c[idx.out_path] || "").replace(/^\.?\/*/, "./") // relativ
         };
       });
     }
 
-    function fmtRow(entry){
+    function card(entry){
       if(!entry) return "—";
+      const time = isFinite(entry.time) ? `${entry.time.toFixed(2)}s` : "—";
       const offG = `G=(${entry.dx_g}, ${entry.dy_g})`;
       const offR = `R=(${entry.dx_r}, ${entry.dy_r})`;
-      const t    = isFinite(entry.time) ? `${entry.time.toFixed(3)}s` : "—";
-      // Linke den Output, wenn vorhanden
-      const link = entry.out ? `<br><a href="${entry.out}" target="_blank">view</a>` : "";
-      return `${t}<br>${offG}<br>${offR}${link}`;
+      const img  = entry.out ? `<a href="${entry.out}" target="_blank"><img class="thumb" src="${entry.out}" alt="${entry.image} ${entry.method}"></a>` : "";
+      return `
+        <div class="cell">
+          ${img}
+          <div class="meta">
+            <span class="time">${time}</span><br>
+            <small>${offG} &nbsp; ${offR}</small>
+          </div>
+        </div>`;
     }
 
-    (async ()=>{
-      // Lade die großen Ergebnisse
-      const rows = await loadCSV("./outputs/rgb_large/results.csv");
-      // Wir wollen nur diese 3 Methoden vergleichen
-      const targetMethods = new Set(["pyramid-ssd","pyramid-ncc","phase"]);
-
-      // Nach Bildname gruppieren
+    function fillTable(tableId, rows, allowedMethods){
+      // Gruppe: { image: {method: entry} }
       const byImage = {};
       rows.forEach(r=>{
-        if(!targetMethods.has(r.method)) return;
-        const name = r.image.replace(/\.(jpg|png|tif|tiff)$/i,"");
-        byImage[name] = byImage[name] || {};
-        byImage[name][r.method] = r;
+        if(!allowedMethods.has(r.method)) return;
+        byImage[r.image] ??= {};
+        byImage[r.image][r.method] = r;
       });
 
-      // Tabelle füllen (alphabetisch)
-      const tbody = document.querySelector("#cmp tbody");
+      const tbody = document.querySelector(`#${tableId} tbody`);
+      tbody.innerHTML = "";
+
       Object.keys(byImage).sort().forEach(name=>{
-        const grp = byImage[name];
+        const g = byImage[name];
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${name}</td>
-          <td>${fmtRow(grp["pyramid-ssd"])}</td>
-          <td>${fmtRow(grp["pyramid-ncc"])}</td>
-          <td>${fmtRow(grp["phase"])}</td>
+          <td class="name">${name}</td>
+          <td>${card(g["pyramid-ssd"])}</td>
+          <td>${card(g["pyramid-ncc"])}</td>
+          <td>${card(g["phase"])}</td>
         `;
         tbody.appendChild(tr);
       });
+    }
+
+    (async () => {
+      // LARGE
+      const large = await loadCSV("./outputs/rgb_large/results.csv");
+      fillTable("tbl-large", large, new Set(["pyramid-ssd","pyramid-ncc","phase"]));
+
+      // SMALL  (wenn du in small nur single-ssd/single-ncc/phase nutzt, mappen wir die Spalten)
+      const small = await loadCSV("./outputs/rgb_small/results.csv");
+      // Für die Anzeige wollen wir die gleichen Spalten wie oben.
+      // Mappe single-ssd→pyramid-ssd, single-ncc→pyramid-ncc (nur UI, Daten bleiben gleich)
+      const smallMapped = small.map(r => ({
+        ...r,
+        method: r.method === "single-ssd" ? "pyramid-ssd" :
+                r.method === "single-ncc" ? "pyramid-ncc" :
+                r.method
+      }));
+      fillTable("tbl-small", smallMapped, new Set(["pyramid-ssd","pyramid-ncc","phase"]));
     })();
-  </script>
-  <script>
-async function loadCSV(url){
-  const res = await fetch(url);
-  if(!res.ok) { console.warn("CSV not found:", url); return []; }
-  const text = await res.text();
-  const lines = text.trim().split(/\r?\n/);
-  const header = lines.shift().split(",").map(h => h.trim());
-  const idx = Object.fromEntries(header.map((h,i)=>[h, i]));
-  return lines.map(line => {
-    const c = line.split(",");
-    return {
-      image:  c[idx.image],
-      method: c[idx.method],
-      dx_g:   c[idx.dx_g],  dy_g: c[idx.dy_g],
-      dx_r:   c[idx.dx_r],  dy_r: c[idx.dy_r],
-      time:   parseFloat(c[idx.time_sec] || "0"),
-      out:    (c[idx.out_path] || "").replace(/^\.?\/*/, "./") // sicher relativ
-    };
-  });
-}
-
-function methodLabel(m){
-  if(m === "pyramid-ssd") return "Pyramid SSD";
-  if(m === "pyramid-ncc") return "Pyramid NCC";
-  if(m === "phase")       return "Phase Corr.";
-  return m;
-}
-
-function buildCard(entry){
-  if(!entry) return "";
-  const time = isFinite(entry.time) ? `${entry.time.toFixed(3)}s` : "—";
-  const offG = `G=(${entry.dx_g}, ${entry.dy_g})`;
-  const offR = `R=(${entry.dx_r}, ${entry.dy_r})`;
-  const alt  = `${entry.image} ${entry.method}`;
-  return `
-    <div class="method-card">
-      <img src="${entry.out}" alt="${alt}" onerror="this.style.display='none'">
-      <div class="method-caption">
-        <span class="badge">${methodLabel(entry.method)}</span>
-        <span class="time">${time}</span><br>
-        <small>${offG} &nbsp; ${offR}</small>
-      </div>
-    </div>`;
-}
-
-(async () => {
-  const csv = "./outputs/rgb_large/results.csv";
-  const rows = await loadCSV(csv);
-  if(!rows.length){ return; }
-
-  // Nur die drei gewünschten Methoden
-  const keep = new Set(["pyramid-ssd","pyramid-ncc","phase"]);
-  const byImg = {};
-  for(const r of rows){
-    if(!keep.has(r.method)) continue;
-    byImg[r.image] ??= {};
-    byImg[r.image][r.method] = r;
-  }
-
-  // Nach Bildname sortieren und rendern
-  const container = document.getElementById("all-results");
-  Object.keys(byImg).sort().forEach(name => {
-    const g = byImg[name];
-    const cards = [g["pyramid-ssd"], g["pyramid-ncc"], g["phase"]]
-      .map(buildCard).join("");
-
-    const block = document.createElement("div");
-    block.className = "results-group";
-    block.innerHTML = `
-      <div class="results-title">${name}</div>
-      <div class="method-grid">
-        ${cards}
-      </div>`;
-    container.appendChild(block);
-  });
-})();
 </script>
-
 </body>
 </html>
