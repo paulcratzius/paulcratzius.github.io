@@ -102,29 +102,28 @@
       </div>
     </div>
 
-    <!-- Emir L2 only (single-scale) -->
-    <div class="section">
-      <div class="section-title"><div class="section-line"></div><h2>Spotlight: Emir — plain L2 (single-scale)</h2></div>
-      <div class="description">Deliberately using plain SSD (no pyramid, no phase) shows clear misalignment. This motivates our coarse-to-fine and phase approaches.</div>
-      <div class="image-grid">
-        <div class="image-container">
-          <img src="./projects/project1/outputs/demos/emir_single-ssd.jpg" alt="emir single-ssd">
-          <div class="image-caption">Emir — SSD (single-scale) with visible color fringing</div>
+    <!-- Demo: Emir mit naivem SSD (Single-Scale) -->
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="./outputs/demos/emir_single-ssd.jpg" alt="emir single-ssd" loading="lazy">
+        <div class="image-caption">
+          Naiver Single-Scale-SSD-Abgleich. Deutlich sichtbare Farbsäume zeigen,
+          dass reine L2-Suche bei großen Verschiebungen/Belichtungsunterschieden versagt.
         </div>
       </div>
     </div>
 
-    <!-- Edge feature visualization -->
-    <div class="section">
-      <div class="section-title"><div class="section-line"></div><h2>Edge Feature Used for Pyramid Alignment</h2></div>
-      <div class="description">We align channels on gradient magnitude (edge map) rather than raw intensities to be robust to brightness and color differences.</div>
-      <div class="image-grid">
-        <div class="image-container">
-          <img src="./projects/project1/outputs/demos/emir_edges.jpg" alt="emir edge map">
-          <div class="image-caption">Gradient-magnitude “edge” image used in the pyramid</div>
+    <!-- Demo: Kantenbild (Edge Map) -->
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="./outputs/demos/emir_edges.jpg" alt="emir edge map" loading="lazy">
+        <div class="image-caption">
+          Statt Helligkeitswerten vergleichen wir Kanten (Gradient-Magnitude).
+          Das macht die Ausrichtung robuster und präziser bei Kanal-/Helligkeitsunterschieden.
         </div>
       </div>
     </div>
+
 
     <!-- Small Images (single-scale) -->
     <div class="section">
