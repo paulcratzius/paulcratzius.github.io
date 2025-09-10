@@ -268,7 +268,18 @@
       const table = document.getElementById(tableId);
       const thead = table.querySelector('thead');
       const tbody = table.querySelector('tbody');
-      thead.innerHTML = `<tr><th>Image</th>${methods.map(m => `<th>${m.replace('single-','').replace('pyramid-','Pyramid ').toUpperCase()}</th>`).join('')}</tr>`;
+      const methodLabels = {
+        'single-ssd': 'SSD without edge detection',
+        'single-ncc': 'NCC (single)',
+        'pyramid-ssd': 'Pyramid SSD',
+        'pyramid-ncc': 'Pyramid NCC',
+        'phase': 'Phase Corr.'
+      };
+
+      thead.innerHTML = `<tr>
+        <th>Image</th>
+        ${methods.map(m => `<th>${methodLabels[m] || m}</th>`).join('')}
+      </tr>`;
       tbody.innerHTML = '';
       const names = Object.keys(grouped).sort();
       if(names.length===0){ tbody.innerHTML = `<tr><td colspan="${methods.length+1}">No rows found. Open console to check CSV paths.</td></tr>`; return; }
