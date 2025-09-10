@@ -51,28 +51,53 @@
       </div>
     </div>
 
-    <!-- Pipeline -->
+        <!-- Pipeline -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Pipeline</h2></div>
-      <div class="image-grid">
-        <div class="image-container">
-          <img src="./outputs/rgb_small/plate_raw.jpg" alt="raw plate" onerror="this.style.display='none'">
-          <div class="image-caption">Raw plate (B/G/R stacked top→bottom)</div>
-        </div>
-        <div class="image-container">
-          <img src="./outputs/rgb_small/crop_debug.jpg" alt="crop" onerror="this.style.display='none'">
-          <div class="image-caption">Border crop (10% each side)</div>
-        </div>
-        <div class="image-container">
-          <img src="./outputs/rgb_small/downscaled_5x.jpg" alt="downscaled" onerror="this.style.display='none'">
-          <div class="image-caption">Downscale ×2 for 5 steps (coarsest level ~100–120px)</div>
-        </div>
-        <div class="image-container">
-          <img src="./outputs/rgb_small/edges_level0.jpg" alt="edges" onerror="this.style.display='none'">
-          <div class="image-caption">Edge map (central differences / Prewitt)</div>
-        </div>
+      <div class="pipeline">
+        <div class="step">Raw plate<br><small>(B/G/R stacked top→bottom)</small></div>
+        <div class="arrow">→</div>
+        <div class="step">Border crop<br><small>(10% each side)</small></div>
+        <div class="arrow">→</div>
+        <div class="step">Downscale ×2<br><small>5 steps, coarsest ~100–120px</small></div>
+        <div class="arrow">→</div>
+        <div class="step">Edge map<br><small>(central differences / Prewitt)</small></div>
       </div>
     </div>
+
+    <style>
+      .pipeline {
+        display:flex;
+        flex-wrap:wrap;
+        align-items:center;
+        justify-content:center;
+        gap:12px;
+        margin-bottom:10px;
+      }
+      .pipeline .step {
+        background:#fff;
+        border:1px solid #e5e5e5;
+        border-radius:10px;
+        padding:14px 18px;
+        min-width:160px;
+        text-align:center;
+        font-weight:500;
+        line-height:1.4;
+        box-shadow:0 1px 3px rgba(0,0,0,0.08);
+      }
+      .pipeline .step small {
+        display:block;
+        font-weight:400;
+        color:#666;
+        font-size:.85rem;
+        margin-top:4px;
+      }
+      .pipeline .arrow {
+        font-size:1.5rem;
+        color:#555;
+      }
+    </style>
+
 
     <!-- Demo: Melons with naive SSD (single-scale) -->
     <div class="section">
@@ -166,6 +191,19 @@
         The edge-based pyramid stabilizes SSD/NCC under illumination and texture changes by matching gradients (central differences / Prewitt).
         Phase correlation is brightness-invariant and provides a good coarse initialization on the smallest level.
         Parameters: crop=0.10, base_win=20, target_min≈120, levels≤6.
+      </div>
+    </div>
+
+
+        <!-- Problems & Takeaways (short) -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Problems & Takeaways</h2></div>
+      <div class="description">
+        <p><b>Why single-scale SSD/NCC failed on large plates.</b> With big displacements and channel brightness differences (e.g., Emir), exhaustive search on raw intensities either misses the true shift or locks onto wrong structures.</p>
+        <p><b>Fix: edge-based pyramid.</b> Matching on gradient magnitude (central differences / Prewitt) makes SSD/NCC far more stable across channels and lets a coarse-to-fine search converge reliably.</p>
+        <p><b>Why phase correlation helped.</b> (1) <i>Fast:</i> FFT-based <code>O(N log N)</code>, great on large images. (2) <i>Brightness-invariant:</i> uses the cross-power spectrum phase. (3) <i>Strong initializer:</i> good coarse shift you can optionally refine at the finest level.</p>
+        <p><b>Speed note.</b> On my .tif images, phase correlation was typically the fastest; the edge pyramid was slower but accurate and consistent.</p>
+        <p><b>Other issues worth discussing.</b> (1) Border/frame artifacts bias alignment unless cropped. (2) Non-rigid changes (motion/parallax) violate pure translation. (3) Metric robustness—outliers and illumination shifts favor normalized/edge features over raw intensities.</p>
       </div>
     </div>
   </div>
