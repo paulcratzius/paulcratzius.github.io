@@ -1,0 +1,9 @@
+# Ignore code folder
+code/
+
+# Ignore local README
+README.md
+
+# Ignore Python cache
+__pycache__/
+*.pyc
