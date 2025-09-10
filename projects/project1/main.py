@@ -21,7 +21,7 @@ OUT_EXTRA = ROOT / "outputs" / "rgb_large_extra"
 
 if __name__ == "__main__":
     
-    """
+    
     # small
     print("[info] small in  =", IN_SMALL.resolve())
     print("[info] small out =", OUT_SMALL.resolve())
@@ -40,10 +40,10 @@ if __name__ == "__main__":
     run_batch(
         str(IN_LARGE), str(OUT_LARGE),
         process_one_func=process_one,
-        methods=("pyramid-ssd","pyramid-ncc","phase"),
+        methods=("single-ssd", "pyramid-ssd", "pyramid-ncc", "phase"),  # ← added 'single-ssd' first
         csv_log="results.csv",
     )
-    """
+
     # extra large
     print("[info] extra in  =", IN_EXTRA.resolve())
     print("[info] extra out =", OUT_EXTRA.resolve())
@@ -51,6 +51,6 @@ if __name__ == "__main__":
     run_batch(
         str(IN_EXTRA), str(OUT_EXTRA),
         process_one_func=process_one,
-        methods=("pyramid-ssd","pyramid-ncc","phase"),
+        methods=("single-ssd", "pyramid-ssd", "pyramid-ncc", "phase"),  # ← added 'single-ssd' first
         csv_log="results.csv",
     )
