@@ -21,7 +21,7 @@ OUT_EXTRA = ROOT / "outputs" / "rgb_large_extra"
 
 if __name__ == "__main__":
     
-    
+    """
     # small
     print("[info] small in  =", IN_SMALL.resolve())
     print("[info] small out =", OUT_SMALL.resolve())
@@ -43,7 +43,7 @@ if __name__ == "__main__":
         methods=("pyramid-ssd","pyramid-ncc","phase"),
         csv_log="results.csv",
     )
-    
+    """
     # extra large
     print("[info] extra in  =", IN_EXTRA.resolve())
     print("[info] extra out =", OUT_EXTRA.resolve())

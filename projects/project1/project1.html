@@ -74,17 +74,17 @@
       </div>
     </div>
 
-    <!-- Demo: Emir with naive SSD (single-scale) -->
+    <!-- Demo: Melons with naive SSD (single-scale) -->
     <div class="section">
-      <div class="section-title"><div class="section-line"></div><h2>Spotlight: Emir — plain L2 (single-scale)</h2></div>
+      <div class="section-title"><div class="section-line"></div><h2>Spotlight: Melons — plain L2 (single-scale)</h2></div>
       <div class="description">
         A deliberately naive single-scale SSD alignment. The strong color fringing shows that plain L2 on raw intensities
         fails for large displacements and illumination differences, motivating coarse-to-fine and phase-based methods.
       </div>
       <div class="image-grid">
         <div class="image-container">
-          <img id="emir-ssd" alt="Emir — SSD (single-scale)" loading="lazy">
-          <div class="image-caption">Emir — SSD (single-scale): clear misalignment and color fringing</div>
+          <img id="melons-ssd" alt="Melons — SSD (single-scale)" loading="lazy">
+          <div class="image-caption">Melons — SSD (single-scale): clear misalignment and color fringing</div>
         </div>
       </div>
     </div>
@@ -98,7 +98,7 @@
       </div>
       <div class="image-grid">
         <div class="image-container">
-          <img id="emir-edges" alt="Emir edge map" loading="lazy">
+          <img id="melons-edges" alt="Melons edge map" loading="lazy">
           <div class="image-caption">Gradient-magnitude “edge” image used in the pyramid</div>
         </div>
       </div>
@@ -204,10 +204,10 @@
     const PAGE_BASE = location.pathname.includes('/projects/project1/') ? '.' : './projects/project1';
 
     // Demo images
-    const emirSsdEl   = document.getElementById('emir-ssd');
-    const emirEdgesEl = document.getElementById('emir-edges');
-    if (emirSsdEl)   emirSsdEl.src   = `${PAGE_BASE}/outputs/demos/emir_single-ssd.jpg`;
-    if (emirEdgesEl) emirEdgesEl.src = `${PAGE_BASE}/outputs/demos/emir_edges.jpg`;
+    const melonsSsdEl   = document.getElementById('melons-ssd');
+    const melonsEdgesEl = document.getElementById('melons-edges');
+    if (melonsSsdEl)   melonsSsdEl.src   = `${PAGE_BASE}/outputs/demos/melons_single-ssd.jpg`;
+    if (melonsEdgesEl) melonsEdgesEl.src = `${PAGE_BASE}/outputs/demos/melons_edges.jpg`;
 
     // Table helpers
     function imgUrl(folder, e){
