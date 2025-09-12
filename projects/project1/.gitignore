@@ -7,3 +7,17 @@ README.md
 # Ignore Python cache
 __pycache__/
 *.pyc
+
+# Ignore environment files
+.env
+venv/
+.env.local
+.venv/
+
+# Ignore submissions folder
+submissions/
+*.zip
+*.tar.gz
+
+# Ignore web
+/web/

@@ -4,6 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Project 1: Colorizing the Prokudin-Gorskii Collection</title>
+
+  <!-- MathJax for LaTeX equations -->
+  <script>
+    window.MathJax = {
+      tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]},
+      svg: {fontCache: 'global'}
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#fff; color:#000; min-height:100vh; padding:40px 20px; }
@@ -30,7 +40,14 @@
     .meta{ font-size:.9rem; color:#444; line-height:1.3; }
     .meta .time{ font-weight:600; }
     .name{ font-weight:600; }
+    .math-note { font-size:.92rem; color:#333; }
     @media (max-width:700px){ .thumb{ width:140px; } }
+
+    /* Pipeline chips */
+    .pipeline { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; margin-bottom:10px; }
+    .pipeline .step { background:#fff; border:1px solid #e5e5e5; border-radius:10px; padding:14px 18px; min-width:160px; text-align:center; font-weight:500; line-height:1.4; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+    .pipeline .step small { display:block; font-weight:400; color:#666; font-size:.85rem; margin-top:4px; }
+    .pipeline .arrow { font-size:1.5rem; color:#555; }
   </style>
 </head>
 <body>
@@ -51,7 +68,7 @@
       </div>
     </div>
 
-        <!-- Pipeline -->
+    <!-- Pipeline -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Pipeline</h2></div>
       <div class="pipeline">
@@ -65,38 +82,123 @@
       </div>
     </div>
 
-    <style>
-      .pipeline {
-        display:flex;
-        flex-wrap:wrap;
-        align-items:center;
-        justify-content:center;
-        gap:12px;
-        margin-bottom:10px;
-      }
-      .pipeline .step {
-        background:#fff;
-        border:1px solid #e5e5e5;
-        border-radius:10px;
-        padding:14px 18px;
-        min-width:160px;
-        text-align:center;
-        font-weight:500;
-        line-height:1.4;
-        box-shadow:0 1px 3px rgba(0,0,0,0.08);
-      }
-      .pipeline .step small {
-        display:block;
-        font-weight:400;
-        color:#666;
-        font-size:.85rem;
-        margin-top:4px;
-      }
-      .pipeline .arrow {
-        font-size:1.5rem;
-        color:#555;
-      }
-    </style>
+    <!-- Mathematical details: SSD, NCC, Pyramid, Edges -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Mathematical Details</h2></div>
+      <div class="description math-note">
+        <p><b>Notation.</b> Let $B$ be the blue reference and $T$ a target channel (G or R).
+        A shift $(d_y,d_x)$ aligns $T$ to $B$ on their overlapping window $\Omega(d_y,d_x)$.</p>
+
+        <p><b>SSD (L2) alignment.</b> We minimize the squared error over the overlap:
+        $$ (d_y^\*,d_x^\*)=\arg\min_{d_y,d_x}\;\sum_{(y,x)\in\Omega} \big[B(y,x)-T(y+d_y,x+d_x)\big]^2. $$
+        Expanding shows sensitivity to global brightness/contrast. If we first subtract means and optionally scale,
+        SSD becomes more stable, but still depends on intensity consistency.</p>
+
+        <p><b>NCC (cosine similarity).</b> With zero-mean patches
+        $\tilde B = B-\mu_B,\ \tilde T = T-\mu_T$, the (zero-mean) normalized cross-correlation is
+        $$ \mathrm{NCC}(d_y,d_x)=
+           \frac{\sum_{\Omega} \tilde B(y,x)\,\tilde T(y+d_y,x+d_x)}
+                {\sqrt{\sum_{\Omega} \tilde B^2}\;\sqrt{\sum_{\Omega} \tilde T^2}}. $$
+        $$ (d_y^\*,d_x^\*)=\arg\max_{d_y,d_x}\ \mathrm{NCC}(d_y,d_x). $$
+        This is exactly the cosine of the angle between the vectorized patches, thus invariant to affine changes of intensity
+        ($aT+b$), explaining its robustness vs. SSD on scenes with channel-dependent brightness.</p>
+
+        <p><b>Coarse-to-fine pyramid.</b> Build levels $k=L,\dots,0$ by downsampling with factor ~2:
+        $B_k=\mathrm{down}(B_{k+1}),\ T_k=\mathrm{down}(T_{k+1})$.
+        At the coarsest $L$, find $(d_y^L,d_x^L)$ with a small search window.
+        Propagate to the finer level by doubling and locally refining:
+        $$ (d_y^{k},d_x^{k})=\arg\max_{|\\Delta|\le r}
+            \ \mathcal{S}\big(B_k,\ T_k(\cdot+d^{k+1}\!\times2 + \\Delta)\big),\quad k=L-1,\dots,0, $$
+        where $\mathcal{S}$ is NCC (or negative SSD). A full-res displacement $D$ shrinks to $D/2^L$ at level $L$,
+        so a tiny search window per level still covers large motions overall.</p>
+
+        <p><b>Edge feature used for SSD/NCC.</b> Instead of raw intensity we match gradient magnitude
+        $$ g_x=\frac{T(\cdot+1)-T(\cdot-1)}{2},\quad g_y=\frac{T^\uparrow-T^\downarrow}{2},\quad
+           M=\sqrt{g_x^2+g_y^2}. $$
+        (We also support 3×3 Prewitt.) Using $M$ suppresses brightness bias and emphasizes structural alignment; we
+        standardize $M$ (zero-mean, unit-std) before matching.</p>
+
+        <p><b>Phase correlation (for reference).</b> In the frequency domain, the cross-power spectrum
+        $$ C=\frac{\mathcal{F}(B)\,\overline{\mathcal{F}(T)}}{|\mathcal{F}(B)\,\overline{\mathcal{F}(T)}|} $$
+        has an inverse FFT whose peak location gives $(d_y,d_x)$. It’s $O(N\log N)$ and invariant to uniform brightness
+        and gain, making it an excellent coarse initializer.</p>
+      </div>
+    </div>
+
+    <!-- Implementation Details -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Implementation Details (what I actually coded)</h2></div>
+      <div class="description">
+
+        <p class="math-note"><b>Common preprocessing for all methods</b></p>
+        <p><b>Split channels:</b> take the plate image and split it vertically into <code>B</code>, <code>G</code>, <code>R</code> thirds.</p>
+        <p><b>Float + scale:</b> convert to <code>float32</code> in <code>[0,1]</code>.</p>
+        <p><b>Border crop:</b> before scoring, use an inner crop (10%) to avoid colored frames affecting the metric (implemented via <code>crop_inner()</code>).</p>
+        <p><b>Overlap only:</b> when testing a shift \((d_y,d_x)\), compare only the overlapping window (implemented via <code>overlap_views()</code> to slice both arrays without wraparound).</p>
+        <p><b>Apply final shift:</b> after the best \((d_y,d_x)\) is found for G and R, shift the full-resolution channels (with <code>np.roll</code> / slicing), then stack to RGB and save; also log displacements and timing to CSV.</p>
+
+        <br>
+
+        <p class="math-note"><b>Single-scale SSD (L2) — “exhaustive search”</b></p>
+        <p><b>Search window:</b> for small JPGs, scan \((d_y,d_x)\in[-15,15]^2\) (configurable).</p>
+        <p><b>Score:</b> compute <code>ssd(a,b) = sum((a-b)^2)</code> on the cropped overlaps; track the minimum value.</p>
+        <p><b>Why this order:</b> cropping first reduces border bias; overlap slicing avoids wraparound; pure SSD is simple but sensitive to brightness differences (see Emir).</p>
+
+        <br>
+
+        <p class="math-note"><b>Single-scale NCC — “exhaustive search, brightness-robust”</b></p>
+        <p><b>Search window:</b> same grid as SSD.</p>
+        <p><b>Score:</b> compute zero-mean normalized cross-correlation on each overlap:
+          <code>ncc(a,b) = dot(a-mean(a), b-mean(b)) / (||a-mean(a)||·||b-mean(b)||)</code>.
+          Pick the <i>maximum</i>.
+        </p>
+        <p><b>Why this order:</b> the zero-mean + normalization makes scores insensitive to gain/offset, so NCC aligns better than SSD when channel brightnesses differ.</p>
+
+        <br>
+
+        <p class="math-note"><b>Pyramid (no edges) — “coarse-to-fine search”</b></p>
+        <p><b>Build pyramids:</b> downsample B/G/R by 2 until the smallest side is about 120 px (5–6 levels).</p>
+        <p><b>Coarsest level init:</b> exhaustive search with a small window (e.g., ±8) to get \((d_y^L,d_x^L)\).</p>
+        <p><b>Refine per level:</b> go to the next finer level: multiply the current shift by 2, then search only in a tiny radius (e.g., ±2) around that prediction; keep the best. Repeat up to full resolution.</p>
+        <p><b>Why it works:</b> large displacements are cheap to discover at small images; each level only needs a tiny local search, so total evaluations are dramatically reduced.</p>
+        <p><b>When it fails:</b> with strong cross-channel brightness changes, the peak of SSD/NCC on raw intensities can be weak or misplaced → motivates edge features.</p>
+
+        <br>
+
+        <p class="math-note"><b>Pyramid with edge features — “robust matching”</b></p>
+        <p><b>Edge maps first:</b> for each channel, compute central-difference (or Prewitt) gradients and magnitude
+          <code>M = sqrt(gx^2 + gy^2)</code>; standardize each map (zero-mean, unit-std).</p>
+        <p><b>Build pyramids on edges:</b> create the same coarse-to-fine scale space, but on <i>edge magnitudes</i> instead of raw intensities.</p>
+        <p><b>Search + refine:</b> identical to the no-edge pyramid (SSD or NCC) but using the edge pyramids to score.</p>
+        <p><b>Apply to intensities:</b> the final shift is applied to the original B/G/R channels to compose the RGB output.</p>
+        <p><b>Why edges:</b> edges suppress global brightness/gain differences and emphasize structure (contours), so the score surface has a sharper peak at the correct shift (e.g., fixes Emir and similar cases).</p>
+
+        <br>
+
+        <p class="math-note"><b>Implementation notes & vectorization</b></p>
+        <p><b>Vectorized metrics:</b> SSD/NCC are pure NumPy array ops; the only loops are over candidate shifts (and over pyramid levels).</p>
+        <p><b>Zero-copy slices:</b> <code>overlap_views()</code> returns Python slices for both arrays; no temporary padding or copies.</p>
+        <p><b>CSV + images:</b> a small <code>runner.run_batch()</code> iterates files, times each method, saves <code>.jpg</code>, writes <code>results.csv</code> (filename, method, G/R shifts, time).</p>
+
+        <pre><code>// pseudo-code of the inner loop (single-scale)
+    best = +Inf (for SSD) or -Inf (for NCC)
+    for dy in [-R..R]:
+      for dx in [-R..R]:
+        A, B = overlap_views(B_ref_cropped, T_cropped, dy, dx)  // slices only
+        score = metric(A, B)  // SSD: min; NCC: max
+        update best and (dy, dx)
+    return best (dy, dx)</code></pre>
+
+        <pre><code>// pseudo-code of pyramid refinement
+    (dy, dx) = search_on_coarsest(B_L, T_L)
+    for k = L-1 ... 0:
+      (dy, dx) = (2*dy, 2*dx)
+      (dy, dx) = local_refine(B_k, T_k, around=(dy,dx), radius=r)
+    return (dy, dx) at full resolution</code></pre>
+
+      </div>
+    </div>
+
 
 
     <!-- Demo: Melons with naive SSD (single-scale) -->
@@ -154,7 +256,7 @@
         <thead>
           <tr>
             <th>Image</th>
-            <th>Demo: SSD (single)</th>   <!-- ← new left-most column -->
+            <th>Demo: SSD (single)</th>
             <th>Pyramid SSD</th>
             <th>Pyramid NCC</th>
             <th>Phase Corr.</th>
@@ -176,7 +278,7 @@
         <thead>
           <tr>
             <th>Image</th>
-            <th>Demo: SSD (single)</th>   <!-- ← new left-most column -->
+            <th>Demo: SSD (single)</th>
             <th>Pyramid SSD</th>
             <th>Pyramid NCC</th>
             <th>Phase Corr.</th>
@@ -190,20 +292,19 @@
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Discussion</h2></div>
       <div class="description">
-        The edge-based pyramid stabilizes SSD/NCC under illumination and texture changes by matching gradients (central differences / Prewitt).
-        Phase correlation is brightness-invariant and provides a good coarse initialization on the smallest level.
+        The edge-based pyramid stabilizes SSD/NCC under illumination and texture changes by matching gradients.
+        Phase correlation is brightness-invariant and provides a strong coarse initialization.
         Parameters: crop=0.10, base_win=20, target_min≈120, levels≤6.
       </div>
     </div>
 
-
-        <!-- Problems & Takeaways (short) -->
+    <!-- Problems & Takeaways -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Problems & Takeaways</h2></div>
       <div class="description">
         <p><b>Why single-scale SSD/NCC failed on large plates.</b> With big displacements and channel brightness differences (e.g., Emir), exhaustive search on raw intensities either misses the true shift or locks onto wrong structures.</p>
         <p><b>Fix: edge-based pyramid.</b> Matching on gradient magnitude (central differences / Prewitt) makes SSD/NCC far more stable across channels and lets a coarse-to-fine search converge reliably.</p>
-        <p><b>Why phase correlation helped.</b> (1) <i>Fast:</i> FFT-based <code>O(N log N)</code>, great on large images. (2) <i>Brightness-invariant:</i> uses the cross-power spectrum phase. (3) <i>Strong initializer:</i> good coarse shift you can optionally refine at the finest level.</p>
+        <p><b>Why phase correlation helped.</b> (1) <i>Fast:</i> FFT-based $O(N \log N)$, great on large images. (2) <i>Brightness-invariant:</i> uses the cross-power spectrum phase. (3) <i>Strong initializer:</i> good coarse shift you can optionally refine at the finest level.</p>
         <p><b>Speed note.</b> On my .tif images, phase correlation was typically the fastest; the edge pyramid was slower but accurate and consistent.</p>
         <p><b>Other issues worth discussing.</b> (1) Border/frame artifacts bias alignment unless cropped. (2) Non-rigid changes (motion/parallax) violate pure translation. (3) Metric robustness—outliers and illumination shifts favor normalized/edge features over raw intensities.</p>
       </div>
@@ -293,24 +394,24 @@
     }
 
     (async ()=>{
-    // SMALL (single-scale)
-    const smallCSV = `${PAGE_BASE}/outputs/rgb_small/results.csv`;
-    console.log("[small] loading", smallCSV);
-    const smallRows = await loadCSV(smallCSV);
-    fillDynamic('tbl-small', smallRows, ['single-ssd','single-ncc','phase'], 'rgb_small');
+      // SMALL (single-scale)
+      const smallCSV = `${PAGE_BASE}/outputs/rgb_small/results.csv`;
+      console.log("[small] loading", smallCSV);
+      const smallRows = await loadCSV(smallCSV);
+      fillDynamic('tbl-small', smallRows, ['single-ssd','single-ncc','phase'], 'rgb_small');
 
-    // LARGE (original)
-    const largeCSV = `${PAGE_BASE}/outputs/rgb_large/results.csv`;
-    console.log("[large] loading", largeCSV);
-    const largeRows = await loadCSV(largeCSV);
-    fillDynamic('tbl-large', largeRows, ['single-ssd','pyramid-ssd','pyramid-ncc','phase'], 'rgb_large');
+      // LARGE (original)
+      const largeCSV = `${PAGE_BASE}/outputs/rgb_large/results.csv`;
+      console.log("[large] loading", largeCSV);
+      const largeRows = await loadCSV(largeCSV);
+      fillDynamic('tbl-large', largeRows, ['single-ssd','pyramid-ssd','pyramid-ncc','phase'], 'rgb_large');
 
-    // LARGE – EXTRA
-    const extraCSV = `${PAGE_BASE}/outputs/rgb_large_extra/results.csv`;
-    console.log("[large-extra] loading", extraCSV);
-    const extraRows = await loadCSV(extraCSV);
-    fillDynamic('tbl-large-extra', extraRows, ['single-ssd','pyramid-ssd','pyramid-ncc','phase'], 'rgb_large_extra');
+      // LARGE – EXTRA
+      const extraCSV = `${PAGE_BASE}/outputs/rgb_large_extra/results.csv`;
+      console.log("[large-extra] loading", extraCSV);
+      const extraRows = await loadCSV(extraCSV);
+      fillDynamic('tbl-large-extra', extraRows, ['single-ssd','pyramid-ssd','pyramid-ncc','phase'], 'rgb_large_extra');
     })();
-</script>
+  </script>
 </body>
 </html>
