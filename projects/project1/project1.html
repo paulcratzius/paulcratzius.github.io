@@ -90,7 +90,7 @@
         A shift $(d_y,d_x)$ aligns $T$ to $B$ on their overlapping window $\Omega(d_y,d_x)$.</p>
 
         <p><b>SSD (L2) alignment.</b> We minimize the squared error over the overlap:
-        $$ (d_y^\*,d_x^\*)=\arg\min_{d_y,d_x}\;\sum_{(y,x)\in\Omega} \big[B(y,x)-T(y+d_y,x+d_x)\big]^2. $$
+        $ (d_y^{*}, d_x^{*}) = \arg\min_{d_y,d_x} \sum_{(y,x)\in\Omega} [B(y,x)-T(y+d_y,x+d_x)]^2. $
         Expanding shows sensitivity to global brightness/contrast. If we first subtract means and optionally scale,
         SSD becomes more stable, but still depends on intensity consistency.</p>
 
@@ -99,7 +99,7 @@
         $$ \mathrm{NCC}(d_y,d_x)=
            \frac{\sum_{\Omega} \tilde B(y,x)\,\tilde T(y+d_y,x+d_x)}
                 {\sqrt{\sum_{\Omega} \tilde B^2}\;\sqrt{\sum_{\Omega} \tilde T^2}}. $$
-        $$ (d_y^\*,d_x^\*)=\arg\max_{d_y,d_x}\ \mathrm{NCC}(d_y,d_x). $$
+        $ (d_y^{*}, d_x^{*}) = \arg\max_{d_y,d_x} \mathrm{NCC}(d_y,d_x). $
         This is exactly the cosine of the angle between the vectorized patches, thus invariant to affine changes of intensity
         ($aT+b$), explaining its robustness vs. SSD on scenes with channel-dependent brightness.</p>
 
