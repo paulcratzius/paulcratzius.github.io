@@ -1,0 +1,13 @@
+image,method,dx_g,dy_g,dx_r,dy_r,time_sec,out_path
+castle,single-ssd,15,15,15,15,9.879552125930786,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/castle_single-ssd.jpg
+castle,pyramid-ssd,25,64,37,141,15.553827047348022,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/castle_pyramid-ssd.jpg
+castle,pyramid-ncc,25,64,37,141,31.592958211898804,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/castle_pyramid-ncc.jpg
+castle,phase,25,65,37,140,0.9178669452667236,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/castle_phase.jpg
+dagestan,single-ssd,4,8,7,15,9.438265085220337,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/dagestan_single-ssd.jpg
+dagestan,pyramid-ssd,4,8,5,89,16.0233793258667,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/dagestan_pyramid-ssd.jpg
+dagestan,pyramid-ncc,4,8,5,89,32.13153100013733,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/dagestan_pyramid-ncc.jpg
+dagestan,phase,3,8,5,88,2.265144109725952,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/dagestan_phase.jpg
+factory,single-ssd,11,15,1,15,9.707876920700073,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/factory_single-ssd.jpg
+factory,pyramid-ssd,9,61,-5,136,16.12207269668579,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/factory_pyramid-ssd.jpg
+factory,pyramid-ncc,9,61,-5,136,31.876415014266968,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/factory_pyramid-ncc.jpg
+factory,phase,13,67,-5,134,2.2016899585723877,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_large_extra/factory_phase.jpg

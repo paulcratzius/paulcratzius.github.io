@@ -1,0 +1,10 @@
+image,method,dx_g,dy_g,dx_r,dy_r,time_sec,out_path
+cathedral,single-ssd,2,5,3,12,0.0713949203491211,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/cathedral_single-ssd.jpg
+cathedral,single-ncc,2,5,3,12,0.17461085319519043,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/cathedral_single-ncc.jpg
+cathedral,phase,2,5,3,12,0.0068781375885009766,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/cathedral_phase.jpg
+monastery,single-ssd,2,-3,2,3,0.06501984596252441,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/monastery_single-ssd.jpg
+monastery,single-ncc,2,-3,2,3,0.17009782791137695,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/monastery_single-ncc.jpg
+monastery,phase,2,-3,2,3,0.010286092758178711,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/monastery_phase.jpg
+tobolsk,single-ssd,3,3,3,6,0.060096025466918945,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/tobolsk_single-ssd.jpg
+tobolsk,single-ncc,3,3,3,6,0.16623306274414062,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/tobolsk_single-ncc.jpg
+tobolsk,phase,2,3,3,6,0.00901484489440918,/Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project1/outputs/rgb_small/tobolsk_phase.jpg
