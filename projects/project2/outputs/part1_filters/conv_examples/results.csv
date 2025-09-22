@@ -1,0 +1,10 @@
+image,kernel,method,time_sec,max_abs_err_vs_scipy,allclose
+i-house-pic,box9,scipy,0.187099,0.00000000,1
+i-house-pic,box9,4loops,38.683911,0.00028992,1
+i-house-pic,box9,2loops,4.611369,0.00030518,1
+i-house-pic,Dx,scipy,0.015544,0.00000000,1
+i-house-pic,Dx,4loops,3.042021,0.00000000,1
+i-house-pic,Dx,2loops,4.269897,0.00000000,1
+i-house-pic,Dy,scipy,0.023433,0.00000000,1
+i-house-pic,Dy,4loops,3.248117,0.00000000,1
+i-house-pic,Dy,2loops,4.297030,0.00000000,1

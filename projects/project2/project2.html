@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project 2: Fun with Filters and Frequencies</title>
+
+  <!-- MathJax (falls benötigt) -->
+  <script>
+    window.MathJax = {
+      tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]},
+      svg: {fontCache: 'global'}
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#fff; color:#000; min-height:100vh; padding:40px 20px; }
+    .container{ max-width:1000px; margin:0 auto; }
+    .header{ text-align:center; margin-bottom:30px; }
+    h1{ font-size:2rem; font-weight:700; margin-bottom:6px; color:#111; }
+    .date{ font-size:1rem; color:#555; font-weight:400; }
+
+    .section{ margin-bottom:40px; }
+    .section-title{ display:flex; align-items:center; margin-bottom:16px; }
+    .section-line{ width:4px; height:22px; background:#111; margin-right:10px; border-radius:2px; }
+    .section-title h2{ font-size:1.2rem; font-weight:600; color:#111; }
+    .description{ background:#fafafa; border-radius:10px; padding:12px 14px; border:1px solid #eee; color:#333; line-height:1.5; font-size:.95rem; }
+
+    .image-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:12px; }
+    .image-container{ background:#fff; border-radius:10px; padding:10px; border:1px solid #e5e5e5; }
+    .image-container img{ width:100%; height:auto; border-radius:6px; display:block; }
+    .image-caption{ margin-top:8px; text-align:center; color:#444; font-size:.9rem; font-weight:500; }
+
+    table{ width:100%; border-collapse:collapse; font-size:.95rem; margin-top:10px; }
+    th, td{ padding:10px 12px; border-bottom:1px solid #eaeaea; vertical-align:top; }
+    th{ text-align:left; background:#fafafa; }
+    .name{ font-weight:600; }
+
+    .back-button{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ddd; border-radius:10px; padding:12px 20px; color:#000; font-size:1rem; font-weight:500; cursor:pointer; transition:all .2s ease; text-decoration:none; display:inline-block; }
+    .back-button:hover{ transform:translateX(-50%) translateY(-2px); background:#f5f5f5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Project 2: Fun with Filters and Frequencies</h1>
+      <div class="date">CS180 • Fall 2025</div>
+    </div>
+
+    <!-- Overview -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Overview</h2></div>
+      <div class="description">
+        In this project I implement spatial filtering from scratch and explore frequency-based effects.
+        Part 1 covers discrete 2D convolutions, finite differences, Gaussian/DoG; Part 2 covers unsharp masking,
+        hybrid images, Gaussian/Laplacian stacks, and multi-resolution blending.
+      </div>
+    </div>
+
+    <!-- ====================== Part 1: Fun with Filters ====================== -->
+    <div class="section">
+    <div class="section-title"><div class="section-line"></div><h2>Part 1.1 — Convolutions from Scratch</h2></div>
+    <div class="description">
+        I implement convolution with <b>four loops</b> (naive) and with <b>two loops</b> (vectorized inner product),
+        and compare against <code>scipy.signal.convolve2d</code> using the same padding/boundary.
+        We evaluate three kernels: 9×9 box (smoothing), $D_x=[1,0,-1]$ (horizontal diff), $D_y=[1,0,-1]^T$ (vertical diff).
+    </div>
+
+    <!-- INPUT (solo, centered) -->
+    <div class="image-grid" style="grid-template-columns:1fr;">
+        <div class="image-container" style="max-width:640px; margin:0 auto;">
+        <img id="p11-input" alt="Input (grayscale)" loading="lazy">
+        <div class="image-caption">Input (grayscale)</div>
+        </div>
+    </div>
+
+    <!-- BOX9 -->
+    <div class="section-title" style="margin-top:20px;"><div class="section-line"></div><h2>Part 1.1 — Box Filter (9×9)</h2></div>
+    <div class="image-grid">
+        <div class="image-container">
+        <img id="p11-box9-4" alt="4 loops box9" loading="lazy">
+        <div class="image-caption">4 loops (9×9 box)</div>
+        </div>
+        <div class="image-container">
+        <img id="p11-box9-2" alt="2 loops box9" loading="lazy">
+        <div class="image-caption">2 loops (9×9 box)</div>
+        </div>
+        <div class="image-container">
+        <img id="p11-box9-s" alt="SciPy box9" loading="lazy">
+        <div class="image-caption">SciPy convolve2d (9×9 box)</div>
+        </div>
+    </div>
+    <table id="tbl-p11-box9">
+        <thead><tr><th>Method</th><th>Time (s)</th><th>Max |diff| vs SciPy</th><th>Allclose (atol=1e-5)</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- Dx -->
+    <div class="section-title" style="margin-top:28px;"><div class="section-line"></div><h2>Part 1.1 — Finite Difference $D_x$</h2></div>
+    <div class="image-grid">
+        <div class="image-container">
+        <img id="p11-dx-4" alt="4 loops Dx" loading="lazy">
+        <div class="image-caption">4 loops (Dx)</div>
+        </div>
+        <div class="image-container">
+        <img id="p11-dx-2" alt="2 loops Dx" loading="lazy">
+        <div class="image-caption">2 loops (Dx)</div>
+        </div>
+        <div class="image-container">
+        <img id="p11-dx-s" alt="SciPy Dx" loading="lazy">
+        <div class="image-caption">SciPy convolve2d (Dx)</div>
+        </div>
+    </div>
+    <table id="tbl-p11-dx">
+        <thead><tr><th>Method</th><th>Time (s)</th><th>Max |diff| vs SciPy</th><th>Allclose (atol=1e-5)</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- Dy -->
+    <div class="section-title" style="margin-top:28px;"><div class="section-line"></div><h2>Part 1.1 — Finite Difference $D_y$</h2></div>
+    <div class="image-grid">
+        <div class="image-container">
+        <img id="p11-dy-4" alt="4 loops Dy" loading="lazy">
+        <div class="image-caption">4 loops (Dy)</div>
+        </div>
+        <div class="image-container">
+        <img id="p11-dy-2" alt="2 loops Dy" loading="lazy">
+        <div class="image-caption">2 loops (Dy)</div>
+        </div>
+        <div class="image-container">
+        <img id="p11-dy-s" alt="SciPy Dy" loading="lazy">
+        <div class="image-caption">SciPy convolve2d (Dy)</div>
+        </div>
+    </div>
+    <table id="tbl-p11-dy">
+        <thead><tr><th>Method</th><th>Time (s)</th><th>Max |diff| vs SciPy</th><th>Allclose (atol=1e-5)</th></tr></thead>
+        <tbody></tbody>
+    </table>
+    </div>
+
+
+    <!-- Platzhalter für die nächsten Abschnitte -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Part 1.2 — Finite Difference Operator</h2></div>
+      <div class="description">To be filled: show $D_x$, $D_y$, gradient magnitude, and a binarized edge image.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Part 1.3 — Derivative of Gaussian (DoG)</h2></div>
+      <div class="description">To be filled: Gaussian smoothing vs. DoG; visualize DoG filters and verify equivalence.</div>
+    </div>
+
+    <!-- ====================== Part 2 (placeholders for now) ====================== -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Part 2.1 — Unsharp Masking</h2></div>
+      <div class="description">To be filled: blurred, high-frequency, and sharpened images; Taj + one custom image.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Part 2.2 — Hybrid Images</h2></div>
+      <div class="description">To be filled: 3 hybrids; for one, show FFT log magnitudes and filtered components.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Part 2.3 — Gaussian & Laplacian Stacks</h2></div>
+      <div class="description">To be filled: stacks for Oraple and Szelski Fig. 3.42 reproduction.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Part 2.4 — Multiresolution Blending</h2></div>
+      <div class="description">To be filled: vertical/horizontal seam, irregular masks, visualize Laplacian stack.</div>
+    </div>
+  </div>
+
+  <a href="../../index.html" class="back-button">← Back to CS 180</a>
+
+<script>
+  // Work from repo root and from /projects/project2/
+  const PAGE_BASE = location.pathname.includes('/projects/project2/') ? '.' : './projects/project2';
+  const P11_BASE  = `${PAGE_BASE}/outputs/part1_filters/conv_examples`;
+  const STEM      = 'i-house-pic'; // ggf. anpassen
+
+  // Input
+  document.getElementById('p11-input').src = `${P11_BASE}/${STEM}_input.jpg`;
+
+  // Outputs
+  const imgMap = [
+    ['p11-box9-4', `${P11_BASE}/${STEM}_box9_4loops.jpg`],
+    ['p11-box9-2', `${P11_BASE}/${STEM}_box9_2loops.jpg`],
+    ['p11-box9-s', `${P11_BASE}/${STEM}_box9_scipy.jpg`],
+    ['p11-dx-4',   `${P11_BASE}/${STEM}_Dx_4loops.jpg`],
+    ['p11-dx-2',   `${P11_BASE}/${STEM}_Dx_2loops.jpg`],
+    ['p11-dx-s',   `${P11_BASE}/${STEM}_Dx_scipy.jpg`],
+    ['p11-dy-4',   `${P11_BASE}/${STEM}_Dy_4loops.jpg`],
+    ['p11-dy-2',   `${P11_BASE}/${STEM}_Dy_2loops.jpg`],
+    ['p11-dy-s',   `${P11_BASE}/${STEM}_Dy_scipy.jpg`],
+  ];
+  imgMap.forEach(([id, url]) => { const el = document.getElementById(id); if (el) el.src = url; });
+
+  // --- Robust CSV loader: Header normalisieren (BOM entfernen, lower-case), Cells trimmen ---
+  async function loadCSV(url){
+    try{
+      const r = await fetch(url, {cache:'no-store'});
+      if(!r.ok){ console.warn('[CSV] fetch failed:', url, r.status); return []; }
+      const txt = await r.text();
+
+      const lines = txt.split(/\r?\n/).filter(Boolean);
+      if(lines.length === 0) return [];
+
+      // Header normalisieren
+      let head = lines.shift().split(',').map(s => s.replace(/^\uFEFF/, '').trim().toLowerCase());
+      // Erwartete Spaltennamen
+      const want = ['image','kernel','method','time_sec','max_abs_err_vs_scipy','allclose'];
+      const idx = {};
+      want.forEach(name => {
+        const i = head.indexOf(name);
+        if(i >= 0) idx[name] = i;
+      });
+
+      // Falls z.B. 'time' statt 'time_sec' o.ä., hier aliasen:
+      if(idx.time_sec == null){
+        const alt = head.indexOf('time');
+        if(alt >= 0) idx.time_sec = alt;
+      }
+
+      const rows = lines.map(line => {
+        const cells = line.split(',').map(s => s.trim());
+        const get = (k) => {
+          const i = idx[k];
+          return i == null ? '' : cells[i] ?? '';
+        };
+        return {
+          image:   get('image'),
+          kernel:  get('kernel'),
+          method:  get('method'),
+          time:    Number(get('time_sec')) || 0,
+          maxerr:  Number(get('max_abs_err_vs_scipy')) || 0,
+          allclose: (get('allclose') === '1' || get('allclose').toLowerCase() === 'true')
+        };
+      });
+
+      console.log(`[CSV] loaded ${rows.length} row(s) from`, url);
+      return rows;
+    }catch(e){
+      console.error('[CSV] error:', url, e);
+      return [];
+    }
+  }
+
+  function fillKernelTable(tableId, rows, kernel){
+    const order = ['4loops','2loops','scipy'];
+    const names = {'4loops':'4 loops', '2loops':'2 loops', 'scipy':'SciPy convolve2d'};
+    const table = document.getElementById(tableId);
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = '';
+
+    // strenge Filterung (bereits getrimmt)
+    const sel = rows.filter(r => r.image === STEM && r.kernel === kernel);
+    if(sel.length === 0){
+      tbody.innerHTML = `<tr><td colspan="4">No rows found for <code>${STEM}</code> / <code>${kernel}</code>. Check <code>${P11_BASE}/results.csv</code>.</td></tr>`;
+      return;
+    }
+
+    order.forEach(m=>{
+      const r = sel.find(x => x.method === m);
+      if(!r) return;
+      const t   = Number.isFinite(r.time)   ? r.time.toFixed(4)         : '—';
+      const err = Number.isFinite(r.maxerr) ? r.maxerr.toExponential(3) : '—';
+      const ac  = r.allclose ? 'true' : 'false';
+      tbody.insertAdjacentHTML('beforeend', `<tr>
+        <td class="name">${names[m]||m}</td>
+        <td>${t}</td>
+        <td>${err}</td>
+        <td>${ac}</td>
+      </tr>`);
+    });
+  }
+
+  (async ()=>{
+    const rows = await loadCSV(`${P11_BASE}/results.csv`);
+    fillKernelTable('tbl-p11-box9', rows, 'box9');
+    fillKernelTable('tbl-p11-dx',   rows, 'Dx');
+    fillKernelTable('tbl-p11-dy',   rows, 'Dy');
+  })();
+</script>
+</body>
+</html>
+
+
