@@ -389,10 +389,141 @@
     </div>
 
     <!-- ====================== Part 2 (placeholders) ====================== -->
-    <div class="section">
-      <div class="section-title"><div class="section-line"></div><h2>Part 2.1 — Unsharp Masking</h2></div>
-      <div class="description">To be filled: blurred, high-frequency, and sharpened images; Taj + one custom image.</div>
-    </div>
+    <!-- ====================== Part 2.1 ====================== -->
+        <div class="section" id="part21">
+        <div class="section-title"><div class="section-line"></div><h2>Part 2.1 — Image “Sharpening” (Unsharp Mask)</h2></div>
+        <div class="description">
+            <p><b>Idea.</b> A Gaussian blur keeps only <i>low frequencies</i>. If we subtract that blurred image from the original,
+            we get the <i>high frequencies</i> (fine details &amp; edges). To make the image look sharper, we add a scaled
+            version of those high frequencies back:</p>
+            <p style="text-align:center; margin:.5rem 0 0;"><code>sharp = I + α · (I − blur<sub>σ</sub>)</code> &nbsp;&nbsp; (aka <i>high-boost</i>)</p>
+            <p>Here I show, for each image, the <b>blurred</b>, <b>high-frequency</b>, and <b>sharpened</b> results, and how the
+            outcome changes as I vary the sharpening amount <code>α</code>. I keep a moderate Gaussian (σ chosen once per image);
+            higher α strengthens edges but can cause halos and amplify noise.</p>
+        </div>
+
+        <!-- Taj -->
+        <div class="section-title" style="margin-top:18px;">
+            <div class="section-line"></div><h2>Taj Mahal — blurred, high-frequency, sharpened</h2>
+        </div>
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="taj-blur" alt="Taj — blurred" loading="lazy">
+            <div class="image-caption">Blurred</div>
+            </div>
+            <div class="image-container">
+            <img id="taj-high" alt="Taj — high frequency (I − blur)" loading="lazy">
+            <div class="image-caption">High-frequency (I − blur)</div>
+            </div>
+            <div class="image-container">
+            <img id="taj-sharp-a10" alt="Taj — sharpened α=1.0" loading="lazy">
+            <div class="image-caption">Sharpened (α = 1.0)</div>
+            </div>
+        </div>
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="taj-sharp-a05" alt="Taj — sharpened α=0.5" loading="lazy">
+            <div class="image-caption">Sharpened (α = 0.5)</div>
+            </div>
+            <div class="image-container">
+            <img id="taj-sharp-a15" alt="Taj — sharpened α=1.5" loading="lazy">
+            <div class="image-caption">Sharpened (α = 1.5)</div>
+            </div>
+        </div>
+
+        <!-- carrying-tobi -->
+        <div class="section-title" style="margin-top:24px;">
+            <div class="section-line"></div><h2>carrying-tobi — blurred, high-frequency, sharpened</h2>
+        </div>
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="tobi-blur" alt="carrying-tobi — blurred" loading="lazy">
+            <div class="image-caption">Blurred</div>
+            </div>
+            <div class="image-container">
+            <img id="tobi-high" alt="carrying-tobi — high frequency" loading="lazy">
+            <div class="image-caption">High-frequency (I − blur)</div>
+            </div>
+            <div class="image-container">
+            <img id="tobi-sharp-a10" alt="carrying-tobi — sharpened α=1.0" loading="lazy">
+            <div class="image-caption">Sharpened (α = 1.0)</div>
+            </div>
+        </div>
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="tobi-sharp-a05" alt="carrying-tobi — sharpened α=0.5" loading="lazy">
+            <div class="image-caption">Sharpened (α = 0.5)</div>
+            </div>
+            <div class="image-container">
+            <img id="tobi-sharp-a15" alt="carrying-tobi — sharpened α=1.5" loading="lazy">
+            <div class="image-caption">Sharpened (α = 1.5)</div>
+            </div>
+        </div>
+
+        <!-- half-dome -->
+        <div class="section-title" style="margin-top:24px;">
+            <div class="section-line"></div><h2>half-dome — blurred, high-frequency, sharpened</h2>
+        </div>
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="dome-blur" alt="half-dome — blurred" loading="lazy">
+            <div class="image-caption">Blurred</div>
+            </div>
+            <div class="image-container">
+            <img id="dome-high" alt="half-dome — high frequency" loading="lazy">
+            <div class="image-caption">High-frequency (I − blur)</div>
+            </div>
+            <div class="image-container">
+            <img id="dome-sharp-a10" alt="half-dome — sharpened α=1.0" loading="lazy">
+            <div class="image-caption">Sharpened (α = 1.0)</div>
+            </div>
+        </div>
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="dome-sharp-a05" alt="half-dome — sharpened α=0.5" loading="lazy">
+            <div class="image-caption">Sharpened (α = 0.5)</div>
+            </div>
+            <div class="image-container">
+            <img id="dome-sharp-a15" alt="half-dome — sharpened α=1.5" loading="lazy">
+            <div class="image-caption">Sharpened (α = 1.5)</div>
+            </div>
+        </div>
+
+        <!-- Evaluation: sharp → blur → re-sharpen -->
+        <div class="section-title" style="margin-top:28px;">
+            <div class="section-line"></div><h2>Evaluation — Sharpening after Artificial Blur (half-dome)</h2>
+        </div>
+        <div class="description">
+            I take a sharp image, blur it (to simulate defocus), then try to recover sharpness with unsharp masking. Sharpening
+            boosts edges but can’t fully undo blur — fine detail and phase information are not restored. With small α we get a
+            pleasant boost; with larger α halos appear around high-contrast edges.
+        </div>
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="eval-orig" alt="half-dome original (sharp)" loading="lazy">
+            <div class="image-caption">Original (sharp)</div>
+            </div>
+            <div class="image-container">
+            <img id="eval-blur" alt="half-dome artificially blurred" loading="lazy">
+            <div class="image-caption">Artificially blurred</div>
+            </div>
+            <div class="image-container">
+            <img id="eval-resharp-a10" alt="half-dome re-sharpened α=1.0" loading="lazy">
+            <div class="image-caption">Re-sharpened (α = 1.0)</div>
+            </div>
+        </div>
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="eval-resharp-a05" alt="half-dome re-sharpened α=0.5" loading="lazy">
+            <div class="image-caption">Re-sharpened (α = 0.5)</div>
+            </div>
+            <div class="image-container">
+            <img id="eval-resharp-a15" alt="half-dome re-sharpened α=1.5" loading="lazy">
+            <div class="image-caption">Re-sharpened (α = 1.5)</div>
+            </div>
+        </div>
+        </div>
+
 
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Part 2.2 — Hybrid Images</h2></div>
@@ -558,6 +689,46 @@
       put('raw-vs-dog', fmt(r.max_abs_diff_raw_vs_dog_mag));
     }
   })();
+
+  /* ================= Part 2.1 assets (Unsharp) ================= */
+    const P21_BASE = `${PAGE_BASE}/outputs/part2_unsharp`;
+
+    // Taj
+    [
+    ['taj-blur','taj_blur.jpg'],
+    ['taj-high','taj_high.jpg'],
+    ['taj-sharp-a05','taj_sharp_a0.5.jpg'],
+    ['taj-sharp-a10','taj_sharp_a1.0.jpg'],
+    ['taj-sharp-a15','taj_sharp_a1.5.jpg'],
+    ].forEach(([id,f])=>{ const el=document.getElementById(id); if(el) el.src=`${P21_BASE}/${f}`; });
+
+    // carrying-tobi
+    [
+    ['tobi-blur','carrying-tobi_blur.jpg'],
+    ['tobi-high','carrying-tobi_high.jpg'],
+    ['tobi-sharp-a05','carrying-tobi_sharp_a0.5.jpg'],
+    ['tobi-sharp-a10','carrying-tobi_sharp_a1.0.jpg'],
+    ['tobi-sharp-a15','carrying-tobi_sharp_a1.5.jpg'],
+    ].forEach(([id,f])=>{ const el=document.getElementById(id); if(el) el.src=`${P21_BASE}/${f}`; });
+
+    // half-dome
+    [
+    ['dome-blur','half-dome_blur.jpg'],
+    ['dome-high','half-dome_high.jpg'],
+    ['dome-sharp-a05','half-dome_sharp_a0.5.jpg'],
+    ['dome-sharp-a10','half-dome_sharp_a1.0.jpg'],
+    ['dome-sharp-a15','half-dome_sharp_a1.5.jpg'],
+    ].forEach(([id,f])=>{ const el=document.getElementById(id); if(el) el.src=`${P21_BASE}/${f}`; });
+
+    // Evaluation (sharp → blur → re-sharpen)
+    [
+    ['eval-orig','half-dome_orig.jpg'],
+    ['eval-blur','half-dome_blurred_for_eval.jpg'],
+    ['eval-resharp-a05','half-dome_resharp_a0.5.jpg'],
+    ['eval-resharp-a10','half-dome_resharp_a1.0.jpg'],
+    ['eval-resharp-a15','half-dome_resharp_a1.5.jpg'],
+    ].forEach(([id,f])=>{ const el=document.getElementById(id); if(el) el.src=`${P21_BASE}/${f}`; });
+
 </script>
 </body>
 </html>
