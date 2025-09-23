@@ -195,6 +195,34 @@ def run_part13(cameraman_path,
     with open(f"{out_dir}/results.csv", "w") as f:
         f.write("ksize,sigma,max_abs_diff_x,max_abs_diff_y,max_abs_diff_mag,inner_max_diff_x,inner_max_diff_y,inner_max_diff_mag\n")
         f.write(f"{ksize},{sigma},{diff_x:.8f},{diff_y:.8f},{diff_m:.8f},{dx_in:.8f},{dy_in:.8f},{m_in:.8f}\n")
+        
+    # --- Raw finite differences (no smoothing) ---
+    Gx_raw = convolve2d(img, Dx, mode='same', boundary='fill', fillvalue=0.0)
+    Gy_raw = convolve2d(img, Dy, mode='same', boundary='fill', fillvalue=0.0)
+    M_raw  = np.sqrt(Gx_raw**2 + Gy_raw**2)
+
+    # Save for the web
+    imwrite(f"{out_dir}/cameraman_raw_dx.jpg",  to_u8(Gx_raw))
+    imwrite(f"{out_dir}/cameraman_raw_dy.jpg",  to_u8(Gy_raw))
+    imwrite(f"{out_dir}/cameraman_raw_mag.jpg", to_u8(M_raw))
+
+    # Extra comparison images (optional but nice on the page)
+    imwrite(f"{out_dir}/diff_raw_vs_blur_mag.jpg", to_u8(np.abs(M_raw - M_b)))
+    imwrite(f"{out_dir}/diff_raw_vs_dog_mag.jpg",  to_u8(np.abs(M_raw - M_d)))
+
+    # Add metrics vs RAW to CSV (append columns)
+    diff_raw_vs_blur = float(np.max(np.abs(M_raw - M_b)))
+    diff_raw_vs_dog  = float(np.max(np.abs(M_raw - M_d)))
+
+    # If you already write results.csv once, extend the header + row like this:
+    with open(f"{out_dir}/results.csv","w") as f:
+        f.write("ksize,sigma,max_abs_diff_x,max_abs_diff_y,max_abs_diff_mag,")
+        f.write("inner_max_diff_x,inner_max_diff_y,inner_max_diff_mag,")
+        f.write("max_abs_diff_raw_vs_blur_mag,max_abs_diff_raw_vs_dog_mag\n")
+        f.write(f"{ksize},{sigma},{diff_x:.8f},{diff_y:.8f},{diff_m:.8f},")
+        f.write(f"{dx_in:.8f},{dy_in:.8f},{m_in:.8f},")
+        f.write(f"{diff_raw_vs_blur:.8f},{diff_raw_vs_dog:.8f}\n")
+
 
 # ----- Main -----
 if __name__ == "__main__":
