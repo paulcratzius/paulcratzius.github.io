@@ -690,44 +690,81 @@
     }
   })();
 
-  /* ================= Part 2.1 assets (Unsharp) ================= */
-    const P21_BASE = `${PAGE_BASE}/outputs/part2_unsharp`;
+     /* ================= Part 2.1 assets (Unsharp) ================= */
+  const P21_BASE = `${PAGE_BASE}/outputs/part2_unsharp`;
 
-    // Taj
-    [
-    ['taj-blur','taj_blur.jpg'],
-    ['taj-high','taj_high.jpg'],
-    ['taj-sharp-a05','taj_sharp_a0.5.jpg'],
-    ['taj-sharp-a10','taj_sharp_a1.0.jpg'],
-    ['taj-sharp-a15','taj_sharp_a1.5.jpg'],
-    ].forEach(([id,f])=>{ const el=document.getElementById(id); if(el) el.src=`${P21_BASE}/${f}`; });
+  // generischer Loader, der mehrere Kandidat-Dateinamen testet
+  function setImgTry(id, candidates) {
+    const el = document.getElementById(id);
+    if (!el) { console.warn('[P21] missing <img>#'+id); return; }
+    let i = 0;
 
-    // carrying-tobi
-    [
-    ['tobi-blur','carrying-tobi_blur.jpg'],
-    ['tobi-high','carrying-tobi_high.jpg'],
-    ['tobi-sharp-a05','carrying-tobi_sharp_a0.5.jpg'],
-    ['tobi-sharp-a10','carrying-tobi_sharp_a1.0.jpg'],
-    ['tobi-sharp-a15','carrying-tobi_sharp_a1.5.jpg'],
-    ].forEach(([id,f])=>{ const el=document.getElementById(id); if(el) el.src=`${P21_BASE}/${f}`; });
+    function tryNext() {
+      if (i >= candidates.length) {
+        console.error('[P21] failed to load', id, candidates);
+        return;
+      }
+      const url = `${P21_BASE}/${candidates[i++]}`;
+      const probe = new Image();
+      probe.onload  = () => { el.src = url; };
+      probe.onerror = tryNext;
+      probe.src = url;
+    }
+    tryNext();
+  }
 
-    // half-dome
-    [
-    ['dome-blur','half-dome_blur.jpg'],
-    ['dome-high','half-dome_high.jpg'],
-    ['dome-sharp-a05','half-dome_sharp_a0.5.jpg'],
-    ['dome-sharp-a10','half-dome_sharp_a1.0.jpg'],
-    ['dome-sharp-a15','half-dome_sharp_a1.5.jpg'],
-    ].forEach(([id,f])=>{ const el=document.getElementById(id); if(el) el.src=`${P21_BASE}/${f}`; });
+  // Erzeuge Kandidatenlisten nach deiner echten Dateikonvention
+  // z.B. blur:  stem_blur_s{sigma}.jpg
+  //      high:  stem_high_s{sigma}.jpg
+  //      sharp: stem_sharp_s{sigma}_a{alpha}.jpg
+  function blurCandidates(stem, sigmas) {
+    return sigmas.map(s => `${stem}_blur_s${s}.jpg`);
+  }
+  function highCandidates(stem, sigmas) {
+    return sigmas.map(s => `${stem}_high_s${s}.jpg`);
+  }
+  function sharpCandidates(stem, sigmas, alpha) {
+    return sigmas.map(s => `${stem}_sharp_s${s}_a${alpha}.jpg`);
+  }
 
-    // Evaluation (sharp → blur → re-sharpen)
-    [
-    ['eval-orig','half-dome_orig.jpg'],
-    ['eval-blur','half-dome_blurred_for_eval.jpg'],
-    ['eval-resharp-a05','half-dome_resharp_a0.5.jpg'],
-    ['eval-resharp-a10','half-dome_resharp_a1.0.jpg'],
-    ['eval-resharp-a15','half-dome_resharp_a1.5.jpg'],
-    ].forEach(([id,f])=>{ const el=document.getElementById(id); if(el) el.src=`${P21_BASE}/${f}`; });
+  // Reihenfolge der ausprobierten Sigmas (nach deinen Files vorhanden: 1.00, 1.60, 2.00)
+  const SIGMA_ORDER = ['1.60', '1.00', '2.00'];
+  // Alpha-Werte, die du anzeigst
+  const ALPHAS = ['0.50', '1.00', '1.50'];
+
+  // === Taj ===
+  setImgTry('taj-blur',      blurCandidates('taj', SIGMA_ORDER));
+  setImgTry('taj-high',      highCandidates('taj', SIGMA_ORDER));
+  setImgTry('taj-sharp-a05', sharpCandidates('taj', SIGMA_ORDER, '0.50'));
+  setImgTry('taj-sharp-a10', sharpCandidates('taj', SIGMA_ORDER, '1.00'));
+  setImgTry('taj-sharp-a15', sharpCandidates('taj', SIGMA_ORDER, '1.50'));
+
+  // === carrying-tobi ===
+  setImgTry('tobi-blur',      blurCandidates('carrying-tobi', SIGMA_ORDER));
+  setImgTry('tobi-high',      highCandidates('carrying-tobi', SIGMA_ORDER));
+  setImgTry('tobi-sharp-a05', sharpCandidates('carrying-tobi', SIGMA_ORDER, '0.50'));
+  setImgTry('tobi-sharp-a10', sharpCandidates('carrying-tobi', SIGMA_ORDER, '1.00'));
+  setImgTry('tobi-sharp-a15', sharpCandidates('carrying-tobi', SIGMA_ORDER, '1.50'));
+
+  // === half-dome ===
+  setImgTry('dome-blur',      blurCandidates('half-dome', SIGMA_ORDER));
+  setImgTry('dome-high',      highCandidates('half-dome', SIGMA_ORDER));
+  setImgTry('dome-sharp-a05', sharpCandidates('half-dome', SIGMA_ORDER, '0.50'));
+  setImgTry('dome-sharp-a10', sharpCandidates('half-dome', SIGMA_ORDER, '1.00'));
+  setImgTry('dome-sharp-a15', sharpCandidates('half-dome', SIGMA_ORDER, '1.50'));
+
+  // === Evaluation (sharp → blur → re-sharpen) ===
+  // Original ist bei dir exakt so benannt:
+  setImgTry('eval-orig', ['half-dome_orig.jpg']);
+
+  // Für die „künstlich geblurt“-Variante verwenden wir bevorzugt s2.00 (falls vorhanden),
+  // sonst die übrigen Sigmas derselben Ordnung.
+  setImgTry('eval-blur', blurCandidates('half-dome', ['2.00', '1.60', '1.00']));
+
+  // Re-sharpen: gleiches Sigma wie oben (wir probieren s2.00 zuerst)
+  setImgTry('eval-resharp-a05', sharpCandidates('half-dome', ['2.00', '1.60', '1.00'], '0.50'));
+  setImgTry('eval-resharp-a10', sharpCandidates('half-dome', ['2.00', '1.60', '1.00'], '1.00'));
+  setImgTry('eval-resharp-a15', sharpCandidates('half-dome', ['2.00', '1.60', '1.00'], '1.50'));
 
 </script>
 </body>
