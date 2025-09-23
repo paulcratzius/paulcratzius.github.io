@@ -75,7 +75,7 @@ def _save_uint8_linear(img_f32, path):
     imwrite(path, np.clip(img_f32, 0, 255).astype(np.uint8))
 
 def _save_uint8_rescaled(img_f32, path):
-    """Für Dx/Dy: kontrasthafte Darstellung durch Min-Max-Normalisierung auf [0,255]."""
+    """For Dx/Dy: high-contrast representation through min-max normalization to [0,255]."""
     mn, mx = float(np.min(img_f32)), float(np.max(img_f32))
     if mx - mn < 1e-8:
         vis = np.zeros_like(img_f32, dtype=np.uint8)
@@ -93,17 +93,17 @@ def run_part11(image_path,
                out_dir="projects/project2/outputs/part1_filters/conv_examples",
                out_stem="i-house-pic"):
     """
-    Rechnet Box9, Dx, Dy mit 4-Loops / 2-Loops / SciPy.
-    Speichert Bilder und schreibt eine CSV mit Zeiten & Genauigkeit (gegen SciPy pro Kernel).
+    Computes Box9, Dx, Dy with 4-Loops / 2-Loops / SciPy.
+    Saves images and writes a CSV with times & accuracy (against SciPy per kernel).
     """
     os.makedirs(out_dir, exist_ok=True)
     img = imread(image_path)
     gray = _to_gray_float(img)
 
-    # Eingabebild
+    # Input image
     _save_uint8_linear(gray, os.path.join(out_dir, f"{out_stem}_input.jpg"))
 
-    # Kernel-Set
+    # Kernel set
     kernels = {
         "box9": (np.ones((9, 9), np.float32) / 81.0),
         "Dx": Dx,
@@ -113,12 +113,12 @@ def run_part11(image_path,
     rows = []  # CSV rows
 
     for kname, K in kernels.items():
-        # --- Referenz (SciPy) ---
+        # --- Reference (SciPy) ---
         t0 = perf_counter()
         ref = convolve_scipy(gray, K)
         t_scipy = perf_counter() - t0
 
-        # Speichern (Visualisierung: Box linear; Dx/Dy rescaled)
+        # Saving (Visualization: Box linear; Dx/Dy rescaled)
         if kname == "box9":
             _save_uint8_linear(ref, os.path.join(out_dir, f"{out_stem}_{kname}_scipy.jpg"))
         else:

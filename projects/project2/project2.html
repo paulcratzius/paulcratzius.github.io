@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Project 2: Fun with Filters and Frequencies</title>
 
-  <!-- MathJax (falls benötigt) -->
+  <!-- MathJax (optional) -->
   <script>
     window.MathJax = {
       tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]},
@@ -29,6 +29,7 @@
     .description{ background:#fafafa; border-radius:10px; padding:12px 14px; border:1px solid #eee; color:#333; line-height:1.5; font-size:.95rem; }
 
     .image-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:12px; }
+    .image-grid.onecol{ grid-template-columns:1fr; }
     .image-container{ background:#fff; border-radius:10px; padding:10px; border:1px solid #e5e5e5; }
     .image-container img{ width:100%; height:auto; border-radius:6px; display:block; }
     .image-caption{ margin-top:8px; text-align:center; color:#444; font-size:.9rem; font-weight:500; }
@@ -37,6 +38,7 @@
     th, td{ padding:10px 12px; border-bottom:1px solid #eaeaea; vertical-align:top; }
     th{ text-align:left; background:#fafafa; }
     .name{ font-weight:600; }
+    .pill{ display:inline-block; padding:3px 8px; border:1px solid #ddd; border-radius:999px; font-size:.85rem; background:#fff; margin-left:6px; }
 
     .back-button{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ddd; border-radius:10px; padding:12px 20px; color:#000; font-size:1rem; font-weight:500; cursor:pointer; transition:all .2s ease; text-decoration:none; display:inline-block; }
     .back-button:hover{ transform:translateX(-50%) translateY(-2px); background:#f5f5f5; }
@@ -59,100 +61,274 @@
       </div>
     </div>
 
-    <!-- ====================== Part 1: Fun with Filters ====================== -->
+    <!-- ====================== Part 1.1 ====================== -->
     <div class="section">
-    <div class="section-title"><div class="section-line"></div><h2>Part 1.1 — Convolutions from Scratch</h2></div>
-    <div class="description">
+      <div class="section-title"><div class="section-line"></div><h2>Part 1.1 — Convolutions from Scratch</h2></div>
+      <div class="description">
         I implement convolution with <b>four loops</b> (naive) and with <b>two loops</b> (vectorized inner product),
         and compare against <code>scipy.signal.convolve2d</code> using the same padding/boundary.
         We evaluate three kernels: 9×9 box (smoothing), $D_x=[1,0,-1]$ (horizontal diff), $D_y=[1,0,-1]^T$ (vertical diff).
-    </div>
+      </div>
 
-    <!-- INPUT (solo, centered) -->
-    <div class="image-grid" style="grid-template-columns:1fr;">
+      <div class="section" style="margin-top:24px;">
+        <div class="section-title"><div class="section-line"></div><h2>Part 1.1 — Key Code Snippets</h2></div>
+
+        <details style="margin:8px 0;"><summary><b>setup(): grayscale, zero padding, kernel flip</b></summary>
+<pre><code>def setup(image, kernel):
+    if image.ndim == 3:
+        image = np.mean(image, axis=2).astype(np.float32)
+    else:
+        image = image.astype(np.float32)
+    ph, pw = kernel.shape[0]//2, kernel.shape[1]//2
+    padded = np.pad(image, ((ph,ph),(pw,pw)), mode='constant', constant_values=0)
+    flipped = np.flipud(np.fliplr(kernel))
+    return padded, flipped</code></pre>
+        </details>
+
+        <details style="margin:8px 0;"><summary><b>convolve_4(): four nested loops</b></summary>
+<pre><code>def convolve_4(image, kernel):
+    if image.ndim == 3: image = np.mean(image, axis=2).astype(np.float32)
+    else:               image = image.astype(np.float32)
+    padded, flipped = setup(image, kernel)
+    H, W = image.shape; kH, kW = flipped.shape
+    out = np.zeros((H, W), dtype=np.float32)
+    for i in range(H):
+      for j in range(W):
+        acc = 0.0
+        for m in range(kH):
+          for n in range(kW):
+            acc += padded[i+m, j+n] * flipped[m, n]
+        out[i, j] = acc
+    return out</code></pre>
+        </details>
+
+        <details style="margin:8px 0;"><summary><b>convolve_2(): two loops + vectorized inner product</b></summary>
+<pre><code>def convolve_2(image, kernel):
+    if image.ndim == 3: image = np.mean(image, axis=2).astype(np.float32)
+    else:               image = image.astype(np.float32)
+    padded, flipped = setup(image, kernel)
+    H, W = image.shape; kH, kW = flipped.shape
+    out = np.zeros((H, W), dtype=np.float32)
+    for i in range(H):
+      for j in range(W):
+        region = padded[i:i+kH, j:j+kW]
+        out[i, j] = np.sum(region * flipped)
+    return out</code></pre>
+        </details>
+
+        <details style="margin:8px 0;"><summary><b>convolve_scipy(): reference</b></summary>
+<pre><code>def convolve_scipy(image, kernel):
+    if image.ndim == 3: image = np.mean(image, axis=2).astype(np.float32)
+    else:               image = image.astype(np.float32)
+    return convolve2d(image, kernel.astype(np.float32),
+                      mode='same', boundary='fill', fillvalue=0.0).astype(np.float32)</code></pre>
+        </details>
+      </div>
+
+      <!-- INPUT (solo, centered) -->
+      <div class="image-grid onecol">
         <div class="image-container" style="max-width:640px; margin:0 auto;">
-        <img id="p11-input" alt="Input (grayscale)" loading="lazy">
-        <div class="image-caption">Input (grayscale)</div>
+          <img id="p11-input" alt="Input (grayscale)" loading="lazy">
+          <div class="image-caption">Input (grayscale)</div>
         </div>
-    </div>
+      </div>
 
-    <!-- BOX9 -->
-    <div class="section-title" style="margin-top:20px;"><div class="section-line"></div><h2>Part 1.1 — Box Filter (9×9)</h2></div>
-    <div class="image-grid">
+      <!-- BOX9 -->
+      <div class="section-title" style="margin-top:20px;"><div class="section-line"></div><h2>Part 1.1 — Box Filter (9×9)</h2></div>
+      <div class="image-grid">
         <div class="image-container">
-        <img id="p11-box9-4" alt="4 loops box9" loading="lazy">
-        <div class="image-caption">4 loops (9×9 box)</div>
+          <img id="p11-box9-4" alt="4 loops box9" loading="lazy">
+          <div class="image-caption">4 loops (9×9 box)</div>
         </div>
         <div class="image-container">
-        <img id="p11-box9-2" alt="2 loops box9" loading="lazy">
-        <div class="image-caption">2 loops (9×9 box)</div>
+          <img id="p11-box9-2" alt="2 loops box9" loading="lazy">
+          <div class="image-caption">2 loops (9×9 box)</div>
         </div>
         <div class="image-container">
-        <img id="p11-box9-s" alt="SciPy box9" loading="lazy">
-        <div class="image-caption">SciPy convolve2d (9×9 box)</div>
+          <img id="p11-box9-s" alt="SciPy box9" loading="lazy">
+          <div class="image-caption">SciPy convolve2d (9×9 box)</div>
         </div>
-    </div>
-    <table id="tbl-p11-box9">
+      </div>
+      <table id="tbl-p11-box9">
         <thead><tr><th>Method</th><th>Time (s)</th><th>Max |diff| vs SciPy</th><th>Allclose (atol=1e-5)</th></tr></thead>
         <tbody></tbody>
-    </table>
+      </table>
 
-    <!-- Dx -->
-    <div class="section-title" style="margin-top:28px;"><div class="section-line"></div><h2>Part 1.1 — Finite Difference $D_x$</h2></div>
-    <div class="image-grid">
+      <!-- Dx -->
+      <div class="section-title" style="margin-top:28px;"><div class="section-line"></div><h2>Part 1.1 — Finite Difference $D_x$</h2></div>
+      <div class="image-grid">
         <div class="image-container">
-        <img id="p11-dx-4" alt="4 loops Dx" loading="lazy">
-        <div class="image-caption">4 loops (Dx)</div>
+          <img id="p11-dx-4" alt="4 loops Dx" loading="lazy">
+          <div class="image-caption">4 loops (Dx)</div>
         </div>
         <div class="image-container">
-        <img id="p11-dx-2" alt="2 loops Dx" loading="lazy">
-        <div class="image-caption">2 loops (Dx)</div>
+          <img id="p11-dx-2" alt="2 loops Dx" loading="lazy">
+          <div class="image-caption">2 loops (Dx)</div>
         </div>
         <div class="image-container">
-        <img id="p11-dx-s" alt="SciPy Dx" loading="lazy">
-        <div class="image-caption">SciPy convolve2d (Dx)</div>
+          <img id="p11-dx-s" alt="SciPy Dx" loading="lazy">
+          <div class="image-caption">SciPy convolve2d (Dx)</div>
         </div>
-    </div>
-    <table id="tbl-p11-dx">
+      </div>
+      <table id="tbl-p11-dx">
         <thead><tr><th>Method</th><th>Time (s)</th><th>Max |diff| vs SciPy</th><th>Allclose (atol=1e-5)</th></tr></thead>
         <tbody></tbody>
-    </table>
+      </table>
 
-    <!-- Dy -->
-    <div class="section-title" style="margin-top:28px;"><div class="section-line"></div><h2>Part 1.1 — Finite Difference $D_y$</h2></div>
-    <div class="image-grid">
+      <!-- Dy -->
+      <div class="section-title" style="margin-top:28px;"><div class="section-line"></div><h2>Part 1.1 — Finite Difference $D_y$</h2></div>
+      <div class="image-grid">
         <div class="image-container">
-        <img id="p11-dy-4" alt="4 loops Dy" loading="lazy">
-        <div class="image-caption">4 loops (Dy)</div>
+          <img id="p11-dy-4" alt="4 loops Dy" loading="lazy">
+          <div class="image-caption">4 loops (Dy)</div>
         </div>
         <div class="image-container">
-        <img id="p11-dy-2" alt="2 loops Dy" loading="lazy">
-        <div class="image-caption">2 loops (Dy)</div>
+          <img id="p11-dy-2" alt="2 loops Dy" loading="lazy">
+          <div class="image-caption">2 loops (Dy)</div>
         </div>
         <div class="image-container">
-        <img id="p11-dy-s" alt="SciPy Dy" loading="lazy">
-        <div class="image-caption">SciPy convolve2d (Dy)</div>
+          <img id="p11-dy-s" alt="SciPy Dy" loading="lazy">
+          <div class="image-caption">SciPy convolve2d (Dy)</div>
         </div>
-    </div>
-    <table id="tbl-p11-dy">
+      </div>
+      <table id="tbl-p11-dy">
         <thead><tr><th>Method</th><th>Time (s)</th><th>Max |diff| vs SciPy</th><th>Allclose (atol=1e-5)</th></tr></thead>
         <tbody></tbody>
-    </table>
+      </table>
     </div>
 
+    <div class="section" style="margin-top:24px;">
+      <div class="section-title"><div class="section-line"></div><h2>Part 1.1 — Runtime & Boundary Handling</h2></div>
+      <div class="description">
+        <p><b>Boundary handling.</b> I use <code>zero padding</code> and return an output of the same size as the input (“same” convolution).
+        This lets the kernel touch the borders; a slight intensity change near the frame is expected. SciPy is configured
+        with <code>boundary='fill', fillvalue=0</code> to match my implementation.</p>
+        <p><b>Runtime.</b> Four loops iterate pixels and kernel: $\mathcal{O}(H\,W\,k_h\,k_w)$. Two loops keep the same order but rely on NumPy’s vectorized inner product, which is much faster. SciPy is C/Fortran & SIMD optimized; for huge kernels FFT-based convolution also helps.</p>
+      </div>
+    </div>
 
-    <!-- Platzhalter für die nächsten Abschnitte -->
+    <!-- ====================== Part 1.2 ====================== -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Part 1.2 — Finite Difference Operator</h2></div>
-      <div class="description">To be filled: show $D_x$, $D_y$, gradient magnitude, and a binarized edge image.</div>
+      <div class="description">
+        I convolve the <i>cameraman</i> image with 1D finite-difference filters $D_x=[1,0,-1]$ and $D_y=[1,0,-1]^T$.
+        From $G_x$ and $G_y$ I compute the gradient magnitude $M=\sqrt{G_x^2+G_y^2}$ and binarize it with a global
+        threshold. I use the <b>89th percentile</b> of $M$ to keep strong edges and suppress background texture.
+      </div>
+
+      <div class="image-grid">
+        <div class="image-container">
+          <img id="p12-dx" alt="Cameraman — Dx response" loading="lazy">
+          <div class="image-caption">Partial derivative $D_x$</div>
+        </div>
+        <div class="image-container">
+          <img id="p12-dy" alt="Cameraman — Dy response" loading="lazy">
+          <div class="image-caption">Partial derivative $D_y$</div>
+        </div>
+        <div class="image-container">
+          <img id="p12-mag" alt="Cameraman — gradient magnitude" loading="lazy">
+          <div class="image-caption">Gradient magnitude $M$</div>
+        </div>
+        <div class="image-container">
+          <img id="p12-edges" alt="Cameraman — binary edges" loading="lazy">
+          <div class="image-caption">Binary edge map (threshold = 89th percentile)</div>
+        </div>
+      </div>
     </div>
 
+    <!-- ====================== Part 1.3 ====================== -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Part 1.3 — Derivative of Gaussian (DoG)</h2></div>
-      <div class="description">To be filled: Gaussian smoothing vs. DoG; visualize DoG filters and verify equivalence.</div>
+      <div class="description">
+        The plain difference operator is noisy. To reduce noise we first blur with a Gaussian $G$ and then take
+        finite differences (<b>two-step</b>). We can get the same result in <b>one step</b> by pre-combining the filters:
+        build <b>derivative-of-Gaussian</b> kernels DoG$_x = G * D_x$ and DoG$_y = G * D_y$, then convolve them with the
+        image. Both pipelines should match except near borders (different padding extents).<br><br>
+        For fair display, I normalize each pair (two-step vs. DoG) to the <i>same</i> intensity range. I also show the
+        absolute-difference maps and a small table with global and inner-region errors.
+        <span id="dog-meta" class="pill"></span>
+      </div>
+
+      <!-- Filters themselves -->
+      <div class="image-grid">
+        <div class="image-container">
+          <img id="dog-filter-x" alt="DoGx filter" loading="lazy">
+          <div class="image-caption">DoG$_x$ kernel (visualized)</div>
+        </div>
+        <div class="image-container">
+          <img id="dog-filter-y" alt="DoGy filter" loading="lazy">
+          <div class="image-caption">DoG$_y$ kernel (visualized)</div>
+        </div>
+      </div>
+
+      <!-- Two-step vs DoG: Gx -->
+      <div class="section-title" style="margin-top:18px;"><div class="section-line"></div><h2>Two-step vs. DoG — $G_x$</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img id="blur-dx" alt="Blur→Dx" loading="lazy">
+          <div class="image-caption">Blur → $D_x$ (shared scale)</div>
+        </div>
+        <div class="image-container">
+          <img id="dog-dx" alt="DoG one-shot Dx" loading="lazy">
+          <div class="image-caption">DoG one-shot $G_x$ (shared scale)</div>
+        </div>
+        <div class="image-container">
+          <img id="diff-dx" alt="abs diff dx" loading="lazy">
+          <div class="image-caption">|difference| (robust scale)</div>
+        </div>
+      </div>
+
+      <!-- Two-step vs DoG: Gy -->
+      <div class="section-title" style="margin-top:18px;"><div class="section-line"></div><h2>Two-step vs. DoG — $G_y$</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img id="blur-dy" alt="Blur→Dy" loading="lazy">
+          <div class="image-caption">Blur → $D_y$ (shared scale)</div>
+        </div>
+        <div class="image-container">
+          <img id="dog-dy" alt="DoG one-shot Dy" loading="lazy">
+          <div class="image-caption">DoG one-shot $G_y$ (shared scale)</div>
+        </div>
+        <div class="image-container">
+          <img id="diff-dy" alt="abs diff dy" loading="lazy">
+          <div class="image-caption">|difference| (robust scale)</div>
+        </div>
+      </div>
+
+      <!-- Two-step vs DoG: magnitude -->
+      <div class="section-title" style="margin-top:18px;"><div class="section-line"></div><h2>Two-step vs. DoG — Magnitude</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img id="blur-mag" alt="Blur→magnitude" loading="lazy">
+          <div class="image-caption">Blur → magnitude (shared scale)</div>
+        </div>
+        <div class="image-container">
+          <img id="dog-mag" alt="DoG magnitude" loading="lazy">
+          <div class="image-caption">DoG magnitude (shared scale)</div>
+        </div>
+        <div class="image-container">
+          <img id="diff-mag" alt="abs diff mag" loading="lazy">
+          <div class="image-caption">|difference| (robust scale)</div>
+        </div>
+      </div>
+
+      <table id="tbl-dog">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Global max |diff|</th>
+            <th>Inner-region max |diff|</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="name">$G_x$</td><td id="dog-gx-global">—</td><td id="dog-gx-inner">—</td></tr>
+          <tr><td class="name">$G_y$</td><td id="dog-gy-global">—</td><td id="dog-gy-inner">—</td></tr>
+          <tr><td class="name">$|G|$</td><td id="dog-mag-global">—</td><td id="dog-mag-inner">—</td></tr>
+        </tbody>
+      </table>
     </div>
 
-    <!-- ====================== Part 2 (placeholders for now) ====================== -->
+    <!-- ====================== Part 2 (placeholders) ====================== -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Part 2.1 — Unsharp Masking</h2></div>
       <div class="description">To be filled: blurred, high-frequency, and sharpened images; Taj + one custom image.</div>
@@ -179,14 +355,15 @@
 <script>
   // Work from repo root and from /projects/project2/
   const PAGE_BASE = location.pathname.includes('/projects/project2/') ? '.' : './projects/project2';
-  const P11_BASE  = `${PAGE_BASE}/outputs/part1_filters/conv_examples`;
-  const STEM      = 'i-house-pic'; // ggf. anpassen
 
-  // Input
-  document.getElementById('p11-input').src = `${P11_BASE}/${STEM}_input.jpg`;
+  /* ================= Part 1.1 assets ================= */
+  const P11_BASE = `${PAGE_BASE}/outputs/part1_filters/conv_examples`;
+  const STEM = 'i-house-pic';
 
-  // Outputs
-  const imgMap = [
+  const p11Input = document.getElementById('p11-input');
+  if (p11Input) p11Input.src = `${P11_BASE}/${STEM}_input.jpg`;
+
+  [
     ['p11-box9-4', `${P11_BASE}/${STEM}_box9_4loops.jpg`],
     ['p11-box9-2', `${P11_BASE}/${STEM}_box9_2loops.jpg`],
     ['p11-box9-s', `${P11_BASE}/${STEM}_box9_scipy.jpg`],
@@ -196,83 +373,51 @@
     ['p11-dy-4',   `${P11_BASE}/${STEM}_Dy_4loops.jpg`],
     ['p11-dy-2',   `${P11_BASE}/${STEM}_Dy_2loops.jpg`],
     ['p11-dy-s',   `${P11_BASE}/${STEM}_Dy_scipy.jpg`],
-  ];
-  imgMap.forEach(([id, url]) => { const el = document.getElementById(id); if (el) el.src = url; });
+  ].forEach(([id, url]) => { const el = document.getElementById(id); if (el) el.src = url; });
 
-  // --- Robust CSV loader: Header normalisieren (BOM entfernen, lower-case), Cells trimmen ---
   async function loadCSV(url){
     try{
       const r = await fetch(url, {cache:'no-store'});
       if(!r.ok){ console.warn('[CSV] fetch failed:', url, r.status); return []; }
       const txt = await r.text();
-
       const lines = txt.split(/\r?\n/).filter(Boolean);
-      if(lines.length === 0) return [];
-
-      // Header normalisieren
+      if(lines.length===0) return [];
       let head = lines.shift().split(',').map(s => s.replace(/^\uFEFF/, '').trim().toLowerCase());
-      // Erwartete Spaltennamen
-      const want = ['image','kernel','method','time_sec','max_abs_err_vs_scipy','allclose'];
       const idx = {};
-      want.forEach(name => {
-        const i = head.indexOf(name);
-        if(i >= 0) idx[name] = i;
+      head.forEach((h,i)=>idx[h]=i);
+      return lines.map(line=>{
+        const c = line.split(',').map(s=>s.trim());
+        const v = n => c[idx[n]] ?? '';
+        const num = n => Number(v(n));
+        return Object.fromEntries(head.map((h,i)=>[h, c[i]]));
       });
-
-      // Falls z.B. 'time' statt 'time_sec' o.ä., hier aliasen:
-      if(idx.time_sec == null){
-        const alt = head.indexOf('time');
-        if(alt >= 0) idx.time_sec = alt;
-      }
-
-      const rows = lines.map(line => {
-        const cells = line.split(',').map(s => s.trim());
-        const get = (k) => {
-          const i = idx[k];
-          return i == null ? '' : cells[i] ?? '';
-        };
-        return {
-          image:   get('image'),
-          kernel:  get('kernel'),
-          method:  get('method'),
-          time:    Number(get('time_sec')) || 0,
-          maxerr:  Number(get('max_abs_err_vs_scipy')) || 0,
-          allclose: (get('allclose') === '1' || get('allclose').toLowerCase() === 'true')
-        };
-      });
-
-      console.log(`[CSV] loaded ${rows.length} row(s) from`, url);
-      return rows;
-    }catch(e){
-      console.error('[CSV] error:', url, e);
-      return [];
-    }
+    }catch(e){ console.error('[CSV] error:', url, e); return []; }
   }
 
   function fillKernelTable(tableId, rows, kernel){
     const order = ['4loops','2loops','scipy'];
-    const names = {'4loops':'4 loops', '2loops':'2 loops', 'scipy':'SciPy convolve2d'};
+    const names = {'4loops':'4 loops','2loops':'2 loops','scipy':'SciPy convolve2d'};
     const table = document.getElementById(tableId);
+    if(!table) return;
     const tbody = table.querySelector('tbody');
     tbody.innerHTML = '';
+    const idx = {image:'image', kernel:'kernel', method:'method', time_sec:'time_sec', max_abs_err_vs_scipy:'max_abs_err_vs_scipy', allclose:'allclose'};
 
-    // strenge Filterung (bereits getrimmt)
-    const sel = rows.filter(r => r.image === STEM && r.kernel === kernel);
-    if(sel.length === 0){
+    const sel = rows.filter(r => r.image===STEM && r.kernel===kernel);
+    if(sel.length===0){
       tbody.innerHTML = `<tr><td colspan="4">No rows found for <code>${STEM}</code> / <code>${kernel}</code>. Check <code>${P11_BASE}/results.csv</code>.</td></tr>`;
       return;
     }
-
     order.forEach(m=>{
-      const r = sel.find(x => x.method === m);
+      const r = sel.find(x => x.method===m);
       if(!r) return;
-      const t   = Number.isFinite(r.time)   ? r.time.toFixed(4)         : '—';
-      const err = Number.isFinite(r.maxerr) ? r.maxerr.toExponential(3) : '—';
-      const ac  = r.allclose ? 'true' : 'false';
+      const t = isFinite(+r.time_sec) ? (+r.time_sec).toFixed(4) : '—';
+      const e = isFinite(+r.max_abs_err_vs_scipy) ? (+r.max_abs_err_vs_scipy).toExponential(3) : '—';
+      const ac = (String(r.allclose).toLowerCase()==='1' || String(r.allclose).toLowerCase()==='true') ? 'true' : 'false';
       tbody.insertAdjacentHTML('beforeend', `<tr>
         <td class="name">${names[m]||m}</td>
         <td>${t}</td>
-        <td>${err}</td>
+        <td>${e}</td>
         <td>${ac}</td>
       </tr>`);
     });
@@ -284,8 +429,62 @@
     fillKernelTable('tbl-p11-dx',   rows, 'Dx');
     fillKernelTable('tbl-p11-dy',   rows, 'Dy');
   })();
+
+  /* ================= Part 1.2 assets ================= */
+  const P12_BASE = `${PAGE_BASE}/outputs/part1_filters/finite_diff`;
+  [['p12-dx','cameraman_dx.jpg'],
+   ['p12-dy','cameraman_dy.jpg'],
+   ['p12-mag','cameraman_mag.jpg'],
+   ['p12-edges','cameraman_edges.jpg']].forEach(([id,file])=>{
+     const el = document.getElementById(id); if(el) el.src = `${P12_BASE}/${file}`;
+  });
+
+  /* ================= Part 1.3 assets ================= */
+  const P13_BASE = `${PAGE_BASE}/outputs/part1_filters/dog`;
+
+  // filters
+  [['dog-filter-x','dogx_filter.jpg'],
+   ['dog-filter-y','dogy_filter.jpg']].forEach(([id,f])=>{
+     const el = document.getElementById(id); if(el) el.src = `${P13_BASE}/${f}`;
+  });
+
+  // two-step vs DoG pairs + difference maps
+  [['blur-dx','cameraman_blur_dx.jpg'],
+   ['dog-dx','cameraman_dog_dx.jpg'],
+   ['diff-dx','diff_dx.jpg'],
+   ['blur-dy','cameraman_blur_dy.jpg'],
+   ['dog-dy','cameraman_dog_dy.jpg'],
+   ['diff-dy','diff_dy.jpg'],
+   ['blur-mag','cameraman_blur_mag.jpg'],
+   ['dog-mag','cameraman_dog_mag.jpg'],
+   ['diff-mag','diff_mag.jpg']].forEach(([id,f])=>{
+     const el = document.getElementById(id); if(el) el.src = `${P13_BASE}/${f}`;
+  });
+
+  // read DoG CSV and fill table + meta (ksize/sigma)
+  (async ()=>{
+    const rows = await loadCSV(`${P13_BASE}/results.csv`);
+    if(rows.length===0) return;
+    const r = rows[0];
+    const badge = document.getElementById('dog-meta');
+    if(badge) badge.textContent = `ksize = ${r.ksize}, sigma = ${r.sigma}`;
+
+    const put = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+    const fmt = x => isFinite(+x) ? (+x).toExponential(3) : '—';
+
+    put('dog-gx-global', fmt(r.max_abs_diff_x));
+    put('dog-gy-global', fmt(r.max_abs_diff_y));
+    put('dog-mag-global', fmt(r.max_abs_diff_mag));
+
+    // inner-region if available
+    if('inner_max_diff_x' in r){
+      put('dog-gx-inner', fmt(r.inner_max_diff_x));
+      put('dog-gy-inner', fmt(r.inner_max_diff_y));
+      put('dog-mag-inner', fmt(r.inner_max_diff_mag));
+    } else {
+      put('dog-gx-inner','—'); put('dog-gy-inner','—'); put('dog-mag-inner','—');
+    }
+  })();
 </script>
 </body>
 </html>
-
-
