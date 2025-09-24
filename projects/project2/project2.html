@@ -42,6 +42,10 @@
 
     .back-button{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ddd; border-radius:10px; padding:12px 20px; color:#000; font-size:1rem; font-weight:500; cursor:pointer; transition:all .2s ease; text-decoration:none; display:inline-block; }
     .back-button:hover{ transform:translateX(-50%) translateY(-2px); background:#f5f5f5; }
+    .image-grid.fixed3{ grid-template-columns:repeat(3,1fr); }
+    .stack-fig .image-caption{ font-size:.85rem; color:#555; }
+    .image-container.wide img{ width:100%; }
+
   </style>
 </head>
 <body>
@@ -580,17 +584,138 @@
         </div>
 
 
-    <!-- ====================== Part 2.3 ====================== -->
-    <div class="section">
-      <div class="section-title"><div class="section-line"></div><h2>Part 2.3 — Gaussian & Laplacian Stacks</h2></div>
-      <div class="description">To be filled: stacks for Oraple and Szelski Fig. 3.42 reproduction.</div>
-    </div>
+    <!-- ====================== Part 2.3 — Gaussian & Laplacian Stacks ====================== -->
+<div class="section" id="part23">
+  <div class="section-title"><div class="section-line"></div><h2>Part 2.3 — Gaussian & Laplacian Stacks (Oraple)</h2></div>
+  <div class="description">
+    I build <b>Gaussian</b> and <b>Laplacian</b> stacks (no downsampling) from scratch and do multi-resolution blending with a
+    smooth vertical mask (apple ⇄ orange). To mimic Szelski Fig. 3.42, I visualize three frequency bands taken from
+    levels 0 (high), 2 (medium), and 4 (low), and show the weighted contributions and the final blend.
+  </div>
 
-    <div class="section">
-      <div class="section-title"><div class="section-line"></div><h2>Part 2.4 — Multiresolution Blending</h2></div>
-      <div class="description">To be filled: vertical/horizontal seam, irregular masks, visualize Laplacian stack.</div>
+  <!-- mask (shown above) -->
+  <div class="image-grid">
+    <div class="image-container">
+      <img id="oraple-mask" alt="oraple mask" loading="lazy">
+      <div class="image-caption">Mask (shown above all rows)</div>
     </div>
   </div>
+
+  <!-- (a)(b)(c): high band -->
+  <div class="image-grid fixed3 stack-fig">
+    <div class="image-container">
+      <img id="oraple-a" alt="(a) Apple high" loading="lazy">
+      <div class="image-caption">(a) Apple — Laplacian (level 0)</div>
+    </div>
+    <div class="image-container">
+      <img id="oraple-b" alt="(b) Orange high" loading="lazy">
+      <div class="image-caption">(b) Orange — Laplacian (level 0)</div>
+    </div>
+    <div class="image-container">
+      <img id="oraple-c" alt="(c) Avg high" loading="lazy">
+      <div class="image-caption">(c) Averaged contributions</div>
+    </div>
+  </div>
+
+  <!-- (d)(e)(f): medium band -->
+  <div class="image-grid fixed3 stack-fig">
+    <div class="image-container">
+      <img id="oraple-d" alt="(d) Apple medium" loading="lazy">
+      <div class="image-caption">(d) Apple — Laplacian (level 2)</div>
+    </div>
+    <div class="image-container">
+      <img id="oraple-e" alt="(e) Orange medium" loading="lazy">
+      <div class="image-caption">(e) Orange — Laplacian (level 2)</div>
+    </div>
+    <div class="image-container">
+      <img id="oraple-f" alt="(f) Avg medium" loading="lazy">
+      <div class="image-caption">(f) Averaged contributions</div>
+    </div>
+  </div>
+
+  <!-- (g)(h)(i): low band -->
+  <div class="image-grid fixed3 stack-fig">
+    <div class="image-container">
+      <img id="oraple-g" alt="(g) Apple low" loading="lazy">
+      <div class="image-caption">(g) Apple — Laplacian (level 4)</div>
+    </div>
+    <div class="image-container">
+      <img id="oraple-h" alt="(h) Orange low" loading="lazy">
+      <div class="image-caption">(h) Orange — Laplacian (level 4)</div>
+    </div>
+    <div class="image-container">
+      <img id="oraple-i" alt="(i) Avg low" loading="lazy">
+      <div class="image-caption">(i) Averaged contributions</div>
+    </div>
+  </div>
+
+  <!-- (j)(k)(l): weighted inputs + final -->
+  <div class="image-grid fixed3 stack-fig">
+    <div class="image-container">
+      <img id="oraple-j" alt="(j) Apple weighted" loading="lazy">
+      <div class="image-caption">(j) Apple × mask (summed over levels)</div>
+    </div>
+    <div class="image-container">
+      <img id="oraple-k" alt="(k) Orange weighted" loading="lazy">
+      <div class="image-caption">(k) Orange × (1−mask)</div>
+    </div>
+    <div class="image-container">
+      <img id="oraple-l" alt="(l) Oraple" loading="lazy">
+      <div class="image-caption">(l) Final blended result</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== Part 2.4 — Multiresolution Blending (custom) ====================== -->
+<div class="section" id="part24">
+  <div class="section-title"><div class="section-line"></div><h2>Part 2.4 — Multiresolution Blending (Custom Examples)</h2></div>
+
+  <!-- Landscapes: larger, stacked vertically; mask above -->
+  <div class="description"><b>Spring ↔ Winter</b> with a soft vertical mask (shown above). I enlarge the panoramas and stack them.</div>
+  <div class="image-grid onecol">
+    <div class="image-container">
+      <img id="sw-mask" alt="spring-winter mask" loading="lazy">
+      <div class="image-caption">Mask</div>
+    </div>
+    <div class="image-container wide">
+      <img id="sw-A" alt="Spring" loading="lazy">
+      <div class="image-caption">A: spring</div>
+    </div>
+    <div class="image-container wide">
+      <img id="sw-B" alt="Winter" loading="lazy">
+      <div class="image-caption">B: winter</div>
+    </div>
+    <div class="image-container wide">
+      <img id="sw-blend" alt="Spring↔Winter blended" loading="lazy">
+      <div class="image-caption">Blended result</div>
+    </div>
+  </div>
+
+  <!-- Mountain / Skyline: triangle mask; mask above inputs -->
+  <div class="description" style="margin-top:16px;"><b>Mountain ↔ Skyline</b> with an <b>irregular triangle mask</b> (shown above) around the mountain.</div>
+  <div class="image-grid">
+    <div class="image-container">
+      <img id="ms-mask" alt="mountain-skyline mask" loading="lazy">
+      <div class="image-caption">Triangle mask (feathered)</div>
+    </div>
+  </div>
+  <div class="image-grid">
+    <div class="image-container">
+      <img id="ms-A" alt="Mountain" loading="lazy">
+      <div class="image-caption">A: mountain (top-anchored crop)</div>
+    </div>
+    <div class="image-container">
+      <img id="ms-B" alt="Skyline" loading="lazy">
+      <div class="image-caption">B: skyline</div>
+    </div>
+    <div class="image-container">
+      <img id="ms-blend" alt="Mountain↔Skyline blended" loading="lazy">
+      <div class="image-caption">Blended result</div>
+    </div>
+  </div>
+</div>
+
+
 
   <a href="../../index.html" class="back-button">← Back to CS 180</a>
 
@@ -834,6 +959,100 @@
   setHybrid('house_ruben','hr-A-orig','A_original.jpg');
   setHybrid('house_ruben','hr-B-orig','B_original.jpg');
   setHybrid('house_ruben','hr-hybrid','hybrid.jpg');
+
+  /* ================= Part 2.3/2.4 assets (Stacks & Blends) ================= */
+  const P23_BASE = `${PAGE_BASE}/outputs/part2_stacks`;
+
+  // Helper that sets src if the file exists; falls back silently.
+  function setImg(id, url){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const probe = new Image();
+    probe.onload = ()=> el.src = url;
+    probe.src = url;
+  }
+
+  // ---------- Oraple (apple+orange) ----------
+  const OR = `${P23_BASE}/oraple`;
+  // inputs & mask
+  setImg('or-apple', `${OR}/apple_input.jpg`);
+  setImg('or-orange', `${OR}/orange_input.jpg`);
+  setImg('or-mask',  `${OR}/mask.jpg`);
+  // Szelski (a)–(l) that your script saved
+  setImg('or-a', `${OR}/(a)_high_apple_L0.jpg`);
+  setImg('or-b', `${OR}/(b)_high_orange_L0.jpg`);
+  setImg('or-c', `${OR}/(c)_high_avg_L0.jpg`);
+  setImg('or-d', `${OR}/(d)_medium_apple_L2.jpg`);
+  setImg('or-e', `${OR}/(e)_medium_orange_L2.jpg`);
+  setImg('or-f', `${OR}/(f)_medium_avg_L2.jpg`);
+  setImg('or-g', `${OR}/(g)_low_apple_L4.jpg`);
+  setImg('or-h', `${OR}/(h)_low_orange_L4.jpg`);
+  setImg('or-i', `${OR}/(i)_low_avg_L4.jpg`);
+  setImg('or-j', `${OR}/(j)_apple_weighted.jpg`);
+  setImg('or-k', `${OR}/(k)_orange_weighted.jpg`);
+  setImg('or-l', `${OR}/(l)_oraple.jpg`);
+  // optional raw stack snapshots
+  setImg('or-GA0', `${OR}/GA_0.jpg`); setImg('or-GA2', `${OR}/GA_2.jpg`); setImg('or-GA4', `${OR}/GA_4.jpg`);
+  setImg('or-LA0', `${OR}/LA_0.jpg`); setImg('or-LA2', `${OR}/LA_2.jpg`); setImg('or-LA4', `${OR}/LA_4.jpg`);
+
+  // ---------- Custom 1: Spring ↔ Winter ----------
+  const SW = `${P23_BASE}/custom_spring_winter`;
+  setImg('sw-A',    `${SW}/A.jpg`);
+  setImg('sw-B',    `${SW}/B.jpg`);
+  setImg('sw-mask', `${SW}/mask.jpg`);
+  setImg('sw-out',  `${SW}/blended.jpg`);
+  setImg('sw-LA0',  `${SW}/LA_0.jpg`);
+  setImg('sw-LB0',  `${SW}/LB_0.jpg`);
+
+  // ---------- Custom 2: Mountain ↔ Skyline (irregular) ----------
+  const MS = `${P23_BASE}/custom_mountain_skyline`;
+  setImg('ms-A',    `${MS}/A.jpg`);
+  setImg('ms-B',    `${MS}/B.jpg`);
+  setImg('ms-mask', `${MS}/mask.jpg`);
+  setImg('ms-out',  `${MS}/blended.jpg`);
+  setImg('ms-LA0',  `${MS}/LA_0.jpg`);
+  setImg('ms-LB0',  `${MS}/LB_0.jpg`);
+
 </script>
+<script>
+  /* ================= Part 2.3 assets (Oraple) ================= */
+  const P23_ORA = `${PAGE_BASE}/outputs/part2_stacks/oraple`;
+  const put = (id, url)=>{ const el=document.getElementById(id); if(el) el.src=url; };
+
+  // mask
+  put('oraple-mask', `${P23_ORA}/mask.jpg`);
+
+  // (a–i) come from the three picked levels your Python saved: L0 (high), L2 (medium), L4 (low)
+  put('oraple-a', `${P23_ORA}/(a)_high_apple_L0.jpg`);
+  put('oraple-b', `${P23_ORA}/(b)_high_orange_L0.jpg`);
+  put('oraple-c', `${P23_ORA}/(c)_high_avg_L0.jpg`);
+
+  put('oraple-d', `${P23_ORA}/(a)_medium_apple_L2.jpg`);
+  put('oraple-e', `${P23_ORA}/(b)_medium_orange_L2.jpg`);
+  put('oraple-f', `${P23_ORA}/(c)_medium_avg_L2.jpg`);
+
+  put('oraple-g', `${P23_ORA}/(a)_low_apple_L4.jpg`);
+  put('oraple-h', `${P23_ORA}/(b)_low_orange_L4.jpg`);
+  put('oraple-i', `${P23_ORA}/(c)_low_avg_L4.jpg`);
+
+  // (j–l)
+  put('oraple-j', `${P23_ORA}/(j)_apple_weighted.jpg`);
+  put('oraple-k', `${P23_ORA}/(k)_orange_weighted.jpg`);
+  put('oraple-l', `${P23_ORA}/(l)_oraple.jpg`);
+
+  /* ================= Part 2.4 assets (custom blends) ================= */
+  const P24_SW = `${PAGE_BASE}/outputs/part2_stacks/custom_spring_winter`;
+  put('sw-mask',  `${P24_SW}/mask.jpg`);
+  put('sw-A',     `${P24_SW}/A.jpg`);
+  put('sw-B',     `${P24_SW}/B.jpg`);
+  put('sw-blend', `${P24_SW}/blended.jpg`);
+
+  const P24_MS = `${PAGE_BASE}/outputs/part2_stacks/custom_mountain_skyline`;
+  put('ms-mask',  `${P24_MS}/mask.jpg`);
+  put('ms-A',     `${P24_MS}/A.jpg`);
+  put('ms-B',     `${P24_MS}/B.jpg`);
+  put('ms-blend', `${P24_MS}/blended.jpg`);
+</script>
+
 </body>
 </html>
