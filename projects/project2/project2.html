@@ -583,14 +583,25 @@
         </div>
         </div>
 
-
-    <!-- ====================== Part 2.3 — Gaussian & Laplacian Stacks ====================== -->
+  <!-- ====================== Part 2.3 — Gaussian & Laplacian Stacks ====================== -->
 <div class="section" id="part23">
-  <div class="section-title"><div class="section-line"></div><h2>Part 2.3 — Gaussian & Laplacian Stacks (Oraple)</h2></div>
+  <div class="section-title"><div class="section-line"></div><h2>Part 2.3 — Gaussian &amp; Laplacian Stacks (Oraple)</h2></div>
   <div class="description">
-    I build <b>Gaussian</b> and <b>Laplacian</b> stacks (no downsampling) from scratch and do multi-resolution blending with a
-    smooth vertical mask (apple ⇄ orange). To mimic Szelski Fig. 3.42, I visualize three frequency bands taken from
-    levels 0 (high), 2 (medium), and 4 (low), and show the weighted contributions and the final blend.
+    <p>
+      A <b>Gaussian stack</b> is the image repeatedly blurred—<i>no downsampling</i>—so each higher level keeps only coarser content.
+      A <b>Laplacian stack</b> is the set of band-pass “detail” layers computed as \(L_k = G_k - G_{k+1}\) plus a final low-pass base.
+      Because all levels stay the original size, the stacks can be summed directly for reconstruction.
+    </p>
+    <p>
+      For the apple/orange pair I build stacks for <b>both images</b> and a <b>Gaussian stack of the mask</b>. To reproduce
+      Szelski Fig. 3.42, I visualize three scale bands from the Laplacian stacks—<i>high</i>, <i>medium</i>, <i>low</i>—by
+      showing levels <code>0, 2, 4</code> for each image ((a–i)). The last row shows the <i>weighted contributions</i> of apple (j)
+      and orange (k) using the blurred mask, and the final <i>reconstruction</i> (l).
+    </p>
+    <p>
+      Why the mask stack? Blurring the mask at every scale softens boundaries in both fine detail and coarse shading,
+      which removes visible seams in the reconstruction.
+    </p>
   </div>
 
   <!-- mask (shown above) -->
@@ -666,7 +677,42 @@
   </div>
 </div>
 
+<!-- (Optional) Tiny legend to map (a–l). Images are already populated by your JS. -->
+  <div class="description" style="margin-top:10px;">
+    <b>Figure mapping.</b> (a) Apple high; (b) Orange high; (c) Avg high •
+    (d) Apple medium; (e) Orange medium; (f) Avg medium •
+    (g) Apple low; (h) Orange low; (i) Avg low •
+    (j) Apple weighted; (k) Orange weighted; (l) Final Oraple.
+  </div>
+</div>
+
 <!-- ====================== Part 2.4 — Multiresolution Blending (custom) ====================== -->
+
+<!-- ====================== Part 2.4 — Multiresolution Blending ====================== -->
+<div class="section" id="part24">
+  <div class="section-title"><div class="section-line"></div><h2>Part 2.4 — Multiresolution Blending</h2></div>
+  <div class="description">
+    <p><b>Algorithm.</b> Given images \(A,B\) and a mask \(M\) (white → take \(A\), black → take \(B\)):</p>
+    <ol style="margin-left:1.25rem;">
+      <li>Build Laplacian stacks \(L(A)\) and \(L(B)\), and a Gaussian stack \(G(M)\).</li>
+      <li>Blend <i>per level</i>:
+        \(L_{\text{blend},k} = G(M)_k \cdot L(A)_k + \big(1-G(M)_k\big)\cdot L(B)_k\).</li>
+      <li>Reconstruct by summing all blended levels (plus the last low-pass).</li>
+    </ol>
+    <p>
+      I first verify the method with the <b>apple ↔ orange</b> vertical seam (“oraple”), then show two custom blends:
+    </p>
+    <ul style="margin-left:1.25rem;">
+      <li><b>Spring ↔ Winter</b> — a soft <i>vertical</i> mask; broad feathering hides the seam along the horizon.</li>
+      <li><b>Mountain ↔ Skyline</b> — an <i>irregular triangular</i> mask; the Gaussian mask stack fades the triangle edge
+          across scales so the skyline emerges smoothly from the mountain.</li>
+    </ul>
+    <p>
+      Implementation detail: I never downsample (stacks, not pyramids), so reconstruction is just a sum over levels;
+      the Gaussian mask stack is what provides the multi-scale smoothing of the seam.
+    </p>
+  </div>
+</div>
 <div class="section" id="part24">
   <div class="section-title"><div class="section-line"></div><h2>Part 2.4 — Multiresolution Blending (Custom Examples)</h2></div>
 
@@ -712,6 +758,17 @@
       <img id="ms-blend" alt="Mountain↔Skyline blended" loading="lazy">
       <div class="image-caption">Blended result</div>
     </div>
+  </div>
+</div>
+
+<!-- ====================== One big takeaway ====================== -->
+<div class="section" id="takeaway">
+  <div class="section-title"><div class="section-line"></div><h2>One Big Takeaway</h2></div>
+  <div class="description">
+    The single knob that mattered most was the <b>mask’s multi-scale softness</b>.
+    If the mask is sharp (or blurred only once), you’ll still spot a boundary—either in tiny edges or in broad lighting.
+    Pushing the mask through a <i>Gaussian stack</i> lets every frequency band get its own smooth transition.
+    Once the mask is multiscale, even a simple step or triangle blends <i>surprisingly</i> well.
   </div>
 </div>
 
