@@ -13,3 +13,10 @@ __pycache__/
 *.pdf
 
 projects/project2/code/
+
+projects/project2/code/
+projects/project2/outputs/
+projects/project2/images/
+# editor backup files
+*.py~
+

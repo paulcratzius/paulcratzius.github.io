@@ -1,2 +1,0 @@
-ksize,sigma,max_abs_diff_x,max_abs_diff_y,max_abs_diff_mag,inner_max_diff_x,inner_max_diff_y,inner_max_diff_mag,max_abs_diff_raw_vs_blur_mag,max_abs_diff_raw_vs_dog_mag
-9,1.6,98.26073834,94.87733081,98.27137328,1.89610256,1.86222757,2.18813185,176.14384926,249.72568053

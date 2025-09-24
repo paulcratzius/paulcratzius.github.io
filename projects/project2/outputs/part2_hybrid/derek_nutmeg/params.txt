@@ -1,7 +1,0 @@
-pair=derek_nutmeg
-cutoff_low_cpi=None, cutoff_high_cpi=None
-sigma_low=12.0000, sigma_high=2.6000
-w_low=1.0, w_high=1.2
-color_mode=gray
-rotate_highpass=True
-aligned=True
