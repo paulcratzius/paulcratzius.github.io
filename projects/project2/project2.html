@@ -249,7 +249,6 @@
         <span id="dog-meta" class="pill"></span>
       </div>
 
-      <!-- Filters themselves -->
       <div class="image-grid">
         <div class="image-container">
           <img id="dog-filter-x" alt="DoGx filter" loading="lazy">
@@ -261,7 +260,6 @@
         </div>
       </div>
 
-      <!-- Two-step vs DoG: Gx -->
       <div class="section-title" style="margin-top:18px;"><div class="section-line"></div><h2>Two-step vs. DoG — $G_x$</h2></div>
       <div class="image-grid">
         <div class="image-container">
@@ -278,7 +276,6 @@
         </div>
       </div>
 
-      <!-- Two-step vs DoG: Gy -->
       <div class="section-title" style="margin-top:18px;"><div class="section-line"></div><h2>Two-step vs. DoG — $G_y$</h2></div>
       <div class="image-grid">
         <div class="image-container">
@@ -295,7 +292,6 @@
         </div>
       </div>
 
-      <!-- Two-step vs DoG: magnitude -->
       <div class="section-title" style="margin-top:18px;"><div class="section-line"></div><h2>Two-step vs. DoG — Magnitude</h2></div>
       <div class="image-grid">
         <div class="image-container">
@@ -327,7 +323,6 @@
         </tbody>
       </table>
 
-      <!-- ===== Raw finite differences vs smoothed/DoG (new comparison) ===== -->
       <div class="section-title" style="margin-top:22px;">
         <div class="section-line"></div><h2>Comparison to Plain Finite Differences</h2>
       </div>
@@ -388,148 +383,204 @@
       </table>
     </div>
 
-    <!-- ====================== Part 2 (placeholders) ====================== -->
     <!-- ====================== Part 2.1 ====================== -->
-        <div class="section" id="part21">
-        <div class="section-title"><div class="section-line"></div><h2>Part 2.1 — Image “Sharpening” (Unsharp Mask)</h2></div>
-        <div class="description">
-            <p><b>Idea.</b> A Gaussian blur keeps only <i>low frequencies</i>. If we subtract that blurred image from the original,
-            we get the <i>high frequencies</i> (fine details &amp; edges). To make the image look sharper, we add a scaled
-            version of those high frequencies back:</p>
-            <p style="text-align:center; margin:.5rem 0 0;"><code>sharp = I + α · (I − blur<sub>σ</sub>)</code> &nbsp;&nbsp; (aka <i>high-boost</i>)</p>
-            <p>Here I show, for each image, the <b>blurred</b>, <b>high-frequency</b>, and <b>sharpened</b> results, and how the
-            outcome changes as I vary the sharpening amount <code>α</code>. I keep a moderate Gaussian (σ chosen once per image);
-            higher α strengthens edges but can cause halos and amplify noise.</p>
-        </div>
+    <div class="section" id="part21">
+      <div class="section-title"><div class="section-line"></div><h2>Part 2.1 — Image “Sharpening” (Unsharp Mask)</h2></div>
+      <div class="description">
+        <p><b>Idea.</b> A Gaussian blur keeps only <i>low frequencies</i>. If we subtract that blurred image from the original,
+        we get the <i>high frequencies</i> (fine details &amp; edges). To make the image look sharper, we add a scaled
+        version of those high frequencies back:</p>
+        <p style="text-align:center; margin:.5rem 0 0;"><code>sharp = I + α · (I − blur<sub>σ</sub>)</code> &nbsp;&nbsp; (aka <i>high-boost</i>)</p>
+        <p>Here I show, for each image, the <b>blurred</b>, <b>high-frequency</b>, and <b>sharpened</b> results, and how the
+        outcome changes as I vary the sharpening amount <code>α</code>. I keep a moderate Gaussian (σ chosen once per image);
+        higher α strengthens edges but can cause halos and amplify noise.</p>
+      </div>
 
-        <!-- Taj -->
-        <div class="section-title" style="margin-top:18px;">
-            <div class="section-line"></div><h2>Taj Mahal — blurred, high-frequency, sharpened</h2>
-        </div>
-        <div class="image-grid">
-            <div class="image-container">
-            <img id="taj-blur" alt="Taj — blurred" loading="lazy">
-            <div class="image-caption">Blurred</div>
-            </div>
-            <div class="image-container">
-            <img id="taj-high" alt="Taj — high frequency (I − blur)" loading="lazy">
-            <div class="image-caption">High-frequency (I − blur)</div>
-            </div>
-            <div class="image-container">
-            <img id="taj-sharp-a10" alt="Taj — sharpened α=1.0" loading="lazy">
-            <div class="image-caption">Sharpened (α = 1.0)</div>
-            </div>
-        </div>
-        <div class="image-grid">
-            <div class="image-container">
-            <img id="taj-sharp-a05" alt="Taj — sharpened α=0.5" loading="lazy">
-            <div class="image-caption">Sharpened (α = 0.5)</div>
-            </div>
-            <div class="image-container">
-            <img id="taj-sharp-a15" alt="Taj — sharpened α=1.5" loading="lazy">
-            <div class="image-caption">Sharpened (α = 1.5)</div>
-            </div>
-        </div>
+      <!-- Taj -->
+      <div class="section-title" style="margin-top:18px;">
+        <div class="section-line"></div><h2>Taj Mahal — blurred, high-frequency, sharpened</h2>
+      </div>
+      <div class="image-grid">
+        <div class="image-container"><img id="taj-blur" alt="Taj — blurred" loading="lazy"><div class="image-caption">Blurred</div></div>
+        <div class="image-container"><img id="taj-high" alt="Taj — high frequency (I − blur)" loading="lazy"><div class="image-caption">High-frequency (I − blur)</div></div>
+        <div class="image-container"><img id="taj-sharp-a10" alt="Taj — sharpened α=1.0" loading="lazy"><div class="image-caption">Sharpened (α = 1.0)</div></div>
+      </div>
+      <div class="image-grid">
+        <div class="image-container"><img id="taj-sharp-a05" alt="Taj — sharpened α=0.5" loading="lazy"><div class="image-caption">Sharpened (α = 0.5)</div></div>
+        <div class="image-container"><img id="taj-sharp-a15" alt="Taj — sharpened α=1.5" loading="lazy"><div class="image-caption">Sharpened (α = 1.5)</div></div>
+      </div>
 
-        <!-- carrying-tobi -->
-        <div class="section-title" style="margin-top:24px;">
-            <div class="section-line"></div><h2>carrying-tobi — blurred, high-frequency, sharpened</h2>
-        </div>
-        <div class="image-grid">
-            <div class="image-container">
-            <img id="tobi-blur" alt="carrying-tobi — blurred" loading="lazy">
-            <div class="image-caption">Blurred</div>
-            </div>
-            <div class="image-container">
-            <img id="tobi-high" alt="carrying-tobi — high frequency" loading="lazy">
-            <div class="image-caption">High-frequency (I − blur)</div>
-            </div>
-            <div class="image-container">
-            <img id="tobi-sharp-a10" alt="carrying-tobi — sharpened α=1.0" loading="lazy">
-            <div class="image-caption">Sharpened (α = 1.0)</div>
-            </div>
-        </div>
-        <div class="image-grid">
-            <div class="image-container">
-            <img id="tobi-sharp-a05" alt="carrying-tobi — sharpened α=0.5" loading="lazy">
-            <div class="image-caption">Sharpened (α = 0.5)</div>
-            </div>
-            <div class="image-container">
-            <img id="tobi-sharp-a15" alt="carrying-tobi — sharpened α=1.5" loading="lazy">
-            <div class="image-caption">Sharpened (α = 1.5)</div>
-            </div>
-        </div>
+      <!-- carrying-tobi -->
+      <div class="section-title" style="margin-top:24px;">
+        <div class="section-line"></div><h2>carrying-tobi — blurred, high-frequency, sharpened</h2>
+      </div>
+      <div class="image-grid">
+        <div class="image-container"><img id="tobi-blur" alt="carrying-tobi — blurred" loading="lazy"><div class="image-caption">Blurred</div></div>
+        <div class="image-container"><img id="tobi-high" alt="carrying-tobi — high frequency" loading="lazy"><div class="image-caption">High-frequency (I − blur)</div></div>
+        <div class="image-container"><img id="tobi-sharp-a10" alt="carrying-tobi — sharpened α=1.0" loading="lazy"><div class="image-caption">Sharpened (α = 1.0)</div></div>
+      </div>
+      <div class="image-grid">
+        <div class="image-container"><img id="tobi-sharp-a05" alt="carrying-tobi — sharpened α=0.5" loading="lazy"><div class="image-caption">Sharpened (α = 0.5)</div></div>
+        <div class="image-container"><img id="tobi-sharp-a15" alt="carrying-tobi — sharpened α=1.5" loading="lazy"><div class="image-caption">Sharpened (α = 1.5)</div></div>
+      </div>
 
-        <!-- half-dome -->
-        <div class="section-title" style="margin-top:24px;">
-            <div class="section-line"></div><h2>half-dome — blurred, high-frequency, sharpened</h2>
-        </div>
-        <div class="image-grid">
-            <div class="image-container">
-            <img id="dome-blur" alt="half-dome — blurred" loading="lazy">
-            <div class="image-caption">Blurred</div>
-            </div>
-            <div class="image-container">
-            <img id="dome-high" alt="half-dome — high frequency" loading="lazy">
-            <div class="image-caption">High-frequency (I − blur)</div>
-            </div>
-            <div class="image-container">
-            <img id="dome-sharp-a10" alt="half-dome — sharpened α=1.0" loading="lazy">
-            <div class="image-caption">Sharpened (α = 1.0)</div>
-            </div>
-        </div>
-        <div class="image-grid">
-            <div class="image-container">
-            <img id="dome-sharp-a05" alt="half-dome — sharpened α=0.5" loading="lazy">
-            <div class="image-caption">Sharpened (α = 0.5)</div>
-            </div>
-            <div class="image-container">
-            <img id="dome-sharp-a15" alt="half-dome — sharpened α=1.5" loading="lazy">
-            <div class="image-caption">Sharpened (α = 1.5)</div>
-            </div>
-        </div>
+      <!-- half-dome -->
+      <div class="section-title" style="margin-top:24px;">
+        <div class="section-line"></div><h2>half-dome — blurred, high-frequency, sharpened</h2>
+      </div>
+      <div class="image-grid">
+        <div class="image-container"><img id="dome-blur" alt="half-dome — blurred" loading="lazy"><div class="image-caption">Blurred</div></div>
+        <div class="image-container"><img id="dome-high" alt="half-dome — high frequency" loading="lazy"><div class="image-caption">High-frequency (I − blur)</div></div>
+        <div class="image-container"><img id="dome-sharp-a10" alt="half-dome — sharpened α=1.0" loading="lazy"><div class="image-caption">Sharpened (α = 1.0)</div></div>
+      </div>
+      <div class="image-grid">
+        <div class="image-container"><img id="dome-sharp-a05" alt="half-dome — sharpened α=0.5" loading="lazy"><div class="image-caption">Sharpened (α = 0.5)</div></div>
+        <div class="image-container"><img id="dome-sharp-a15" alt="half-dome — sharpened α=1.5" loading="lazy"><div class="image-caption">Sharpened (α = 1.5)</div></div>
+      </div>
 
-        <!-- Evaluation: sharp → blur → re-sharpen -->
-        <div class="section-title" style="margin-top:28px;">
-            <div class="section-line"></div><h2>Evaluation — Sharpening after Artificial Blur (half-dome)</h2>
-        </div>
-        <div class="description">
-            I take a sharp image, blur it (to simulate defocus), then try to recover sharpness with unsharp masking. Sharpening
-            boosts edges but can’t fully undo blur — fine detail and phase information are not restored. With small α we get a
-            pleasant boost; with larger α halos appear around high-contrast edges.
-        </div>
-        <div class="image-grid">
-            <div class="image-container">
-            <img id="eval-orig" alt="half-dome original (sharp)" loading="lazy">
-            <div class="image-caption">Original (sharp)</div>
-            </div>
-            <div class="image-container">
-            <img id="eval-blur" alt="half-dome artificially blurred" loading="lazy">
-            <div class="image-caption">Artificially blurred</div>
-            </div>
-            <div class="image-container">
-            <img id="eval-resharp-a10" alt="half-dome re-sharpened α=1.0" loading="lazy">
-            <div class="image-caption">Re-sharpened (α = 1.0)</div>
-            </div>
-        </div>
-        <div class="image-grid">
-            <div class="image-container">
-            <img id="eval-resharp-a05" alt="half-dome re-sharpened α=0.5" loading="lazy">
-            <div class="image-caption">Re-sharpened (α = 0.5)</div>
-            </div>
-            <div class="image-container">
-            <img id="eval-resharp-a15" alt="half-dome re-sharpened α=1.5" loading="lazy">
-            <div class="image-caption">Re-sharpened (α = 1.5)</div>
-            </div>
-        </div>
-        </div>
-
-
-    <div class="section">
-      <div class="section-title"><div class="section-line"></div><h2>Part 2.2 — Hybrid Images</h2></div>
-      <div class="description">To be filled: 3 hybrids; for one, show FFT log magnitudes and filtered components.</div>
+      <!-- Evaluation: sharp → blur → re-sharpen -->
+      <div class="section-title" style="margin-top:28px;">
+        <div class="section-line"></div><h2>Evaluation — Sharpening after Artificial Blur (half-dome)</h2>
+      </div>
+      <div class="description">
+        I take a sharp image, blur it (to simulate defocus), then try to recover sharpness with unsharp masking. Sharpening
+        boosts edges but can’t fully undo blur — fine detail and phase information are not restored. With small α we get a
+        pleasant boost; with larger α halos appear around high-contrast edges.
+      </div>
+      <div class="image-grid">
+        <div class="image-container"><img id="eval-orig" alt="half-dome original (sharp)" loading="lazy"><div class="image-caption">Original (sharp)</div></div>
+        <div class="image-container"><img id="eval-blur" alt="half-dome artificially blurred" loading="lazy"><div class="image-caption">Artificially blurred</div></div>
+        <div class="image-container"><img id="eval-resharp-a10" alt="half-dome re-sharpened α=1.0" loading="lazy"><div class="image-caption">Re-sharpened (α = 1.0)</div></div>
+      </div>
+      <div class="image-grid">
+        <div class="image-container"><img id="eval-resharp-a05" alt="half-dome re-sharpened α=0.5" loading="lazy"><div class="image-caption">Re-sharpened (α = 0.5)</div></div>
+        <div class="image-container"><img id="eval-resharp-a15" alt="half-dome re-sharpened α=1.5" loading="lazy"><div class="image-caption">Re-sharpened (α = 1.5)</div></div>
+      </div>
     </div>
 
+    <!-- ====================== Part 2.2 — Hybrid Images ====================== -->
+    <div class="section" id="part22">
+        <div class="section-title"><div class="section-line"></div><h2>Part 2.2 — Hybrid Images</h2></div>
+
+        <div class="description">
+            <p><b>What is a hybrid image?</b> We combine the <i>low frequencies</i> of image A (strong Gaussian blur)
+            with the <i>high frequencies</i> of image B (edges/details). Up close it looks like B; from a distance it
+            looks like A (Oliva, Torralba &amp; Schyns, SIGGRAPH’06).</p>
+
+            <p><b>Cutoff frequency &sigma;.</b> A 2D Gaussian has frequency response
+            \( H(f)=e^{-2\pi^2\sigma^2 f^2} \). Setting \(H(f_c)=0.5\) gives
+            \( f_c \approx \tfrac{0.187}{\sigma} \) cycles/pixel (≈ \( f_c\cdot\min(H,W) \) cycles/image).
+            Heuristic: use a <i>larger</i> \(\sigma_\text{low}\) for A (strong blur) and a <i>smaller</i>
+            \(\sigma_\text{high}\) for B. I optionally use a DoG band-pass
+            \(G(\sigma_\text{high})-G(\rho\,\sigma_\text{high})\) with \(\rho\approx2\) to suppress very low
+            frequencies in B (fewer halos).</p>
+
+            <p><b>Alignment.</b> Perception depends on corresponding structures (eyes/nose). I pick two points per image
+            (eyes) and rotate/scale/center the high-pass image relative to the low-pass image.</p>
+
+            <p><b>Amplitude match.</b> The high-pass is zero-mean, RMS-normalized, and added with weight
+            \(w_\text{high}\): \( \text{hybrid}=\text{low}_A + w_\text{high}\,\text{high}_B \).
+            Color: low-pass can stay in color; high-pass is luminance-only to avoid colored halos.</p>
+        </div>
+
+        <!-- ===== Walk-through: Derek + Nutmeg (full pipeline) ===== -->
+        <div class="section-title" style="margin-top:18px;">
+            <div class="section-line"></div><h2>Walk-through: Derek (low) + Nutmeg (high)</h2>
+        </div>
+        <div class="description">
+            <span class="pill">σ<sub>low</sub>: <span id="dn-slow">—</span></span>
+            <span class="pill">σ<sub>high</sub>: <span id="dn-shigh">—</span></span>
+            <span class="pill">DoG ρ: <span id="dn-rho">—</span></span>
+            <span class="pill">w<sub>low</sub>: <span id="dn-wlow">—</span></span>
+            <span class="pill">w<sub>high</sub>: <span id="dn-whigh">—</span></span>
+        </div>
+
+        <!-- Originals -->
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="dn-A-orig" alt="Derek original" loading="lazy"><div class="image-caption">A: original (Derek)</div>
+            </div>
+            <div class="image-container">
+            <img id="dn-B-orig" alt="Nutmeg original" loading="lazy"><div class="image-caption">B: original (Nutmeg)</div>
+            </div>
+        </div>
+
+        <!-- Aligned -->
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="dn-A-align" alt="Derek aligned" loading="lazy"><div class="image-caption">A aligned</div>
+            </div>
+            <div class="image-container">
+            <img id="dn-B-align" alt="Nutmeg aligned" loading="lazy"><div class="image-caption">B aligned</div>
+            </div>
+        </div>
+
+        <!-- Filtered components -->
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="dn-lowA" alt="low(A)" loading="lazy"><div class="image-caption">Low-pass of A</div>
+            </div>
+            <div class="image-container">
+            <img id="dn-highB" alt="high(B)" loading="lazy"><div class="image-caption">High/DoG of B (luminance)</div>
+            </div>
+            <div class="image-container">
+            <img id="dn-hybrid" alt="hybrid" loading="lazy"><div class="image-caption">Hybrid (final)</div>
+            </div>
+        </div>
+
+        <!-- FFTs -->
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="dn-fftA" alt="FFT A" loading="lazy"><div class="image-caption">FFT log |A|</div>
+            </div>
+            <div class="image-container">
+            <img id="dn-fftB" alt="FFT B" loading="lazy"><div class="image-caption">FFT log |B|</div>
+            </div>
+            <div class="image-container">
+            <img id="dn-fftLow" alt="FFT lowA" loading="lazy"><div class="image-caption">FFT log |low(A)|</div>
+            </div>
+            <div class="image-container">
+            <img id="dn-fftHigh" alt="FFT highB" loading="lazy"><div class="image-caption">FFT log |high(B)|</div>
+            </div>
+            <div class="image-container">
+            <img id="dn-fftHybrid" alt="FFT hybrid" loading="lazy"><div class="image-caption">FFT log |hybrid|</div>
+            </div>
+        </div>
+
+        <!-- ===== The other two pairs: originals + final only ===== -->
+        <div class="section-title" style="margin-top:22px;">
+            <div class="section-line"></div><h2>Additional Hybrids</h2>
+        </div>
+
+        <!-- Pair 2 -->
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="hb-A-orig" alt="A2 original" loading="lazy"><div class="image-caption">A: original</div>
+            </div>
+            <div class="image-container">
+            <img id="hb-B-orig" alt="B2 original" loading="lazy"><div class="image-caption">B: original</div>
+            </div>
+            <div class="image-container">
+            <img id="hb-hybrid" alt="hybrid 2" loading="lazy"><div class="image-caption">Hybrid (final)</div>
+            </div>
+        </div>
+
+        <!-- Pair 3 -->
+        <div class="image-grid">
+            <div class="image-container">
+            <img id="hr-A-orig" alt="A3 original" loading="lazy"><div class="image-caption">A: original</div>
+            </div>
+            <div class="image-container">
+            <img id="hr-B-orig" alt="B3 original" loading="lazy"><div class="image-caption">B: original</div>
+            </div>
+            <div class="image-container">
+            <img id="hr-hybrid" alt="hybrid 3" loading="lazy"><div class="image-caption">Hybrid (final)</div>
+            </div>
+        </div>
+        </div>
+
+
+    <!-- ====================== Part 2.3 ====================== -->
     <div class="section">
       <div class="section-title"><div class="section-line"></div><h2>Part 2.3 — Gaussian & Laplacian Stacks</h2></div>
       <div class="description">To be filled: stacks for Oraple and Szelski Fig. 3.42 reproduction.</div>
@@ -596,7 +647,7 @@
       tbody.innerHTML = `<tr><td colspan="4">No rows found for <code>${STEM}</code> / <code>${kernel}</code>. Check <code>${P11_BASE}/results.csv</code>.</td></tr>`;
       return;
     }
-    order.forEach(m=>{
+    ['4loops','2loops','scipy'].forEach(m=>{
       const r = sel.find(x => x.method===m);
       if(!r) return;
       const t = isFinite(+r.time_sec) ? (+r.time_sec).toFixed(4) : '—';
@@ -630,13 +681,11 @@
   /* ================= Part 1.3 assets ================= */
   const P13_BASE = `${PAGE_BASE}/outputs/part1_filters/dog`;
 
-  // filters
   [['dog-filter-x','dogx_filter.jpg'],
    ['dog-filter-y','dogy_filter.jpg']].forEach(([id,f])=>{
      const el = document.getElementById(id); if(el) el.src = `${P13_BASE}/${f}`;
   });
 
-  // two-step vs DoG pairs + difference maps
   [['blur-dx','cameraman_blur_dx.jpg'],
    ['dog-dx','cameraman_dog_dx.jpg'],
    ['diff-dx','diff_dx.jpg'],
@@ -649,7 +698,6 @@
      const el = document.getElementById(id); if(el) el.src = `${P13_BASE}/${f}`;
   });
 
-  // extra images for RAW-vs-smoothed/DoG comparison
   [['raw-mag','cameraman_raw_mag.jpg'],
    ['blur-mag-dup','cameraman_blur_mag.jpg'],
    ['dog-mag-dup','cameraman_dog_mag.jpg'],
@@ -658,7 +706,6 @@
      const el = document.getElementById(id); if(el) el.src = `${P13_BASE}/${f}`;
   });
 
-  // read DoG CSV and fill table + meta (ksize/sigma) + raw comparisons
   (async ()=>{
     const rows = await loadCSV(`${P13_BASE}/results.csv`);
     if(rows.length===0) return;
@@ -669,7 +716,6 @@
     const put = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     const fmt = x => isFinite(+x) ? (+x).toExponential(3) : '—';
 
-    // two-step vs DoG diffs (global + inner)
     put('dog-gx-global', fmt(r.max_abs_diff_x));
     put('dog-gy-global', fmt(r.max_abs_diff_y));
     put('dog-mag-global', fmt(r.max_abs_diff_mag));
@@ -681,7 +727,6 @@
       put('dog-gx-inner','—'); put('dog-gy-inner','—'); put('dog-mag-inner','—');
     }
 
-    // RAW vs smoothed / DoG (new fields)
     if('max_abs_diff_raw_vs_blur_mag' in r){
       put('raw-vs-blur', fmt(r.max_abs_diff_raw_vs_blur_mag));
     }
@@ -690,20 +735,15 @@
     }
   })();
 
-     /* ================= Part 2.1 assets (Unsharp) ================= */
+  /* ================= Part 2.1 assets (Unsharp) ================= */
   const P21_BASE = `${PAGE_BASE}/outputs/part2_unsharp`;
 
-  // generischer Loader, der mehrere Kandidat-Dateinamen testet
   function setImgTry(id, candidates) {
     const el = document.getElementById(id);
     if (!el) { console.warn('[P21] missing <img>#'+id); return; }
     let i = 0;
-
     function tryNext() {
-      if (i >= candidates.length) {
-        console.error('[P21] failed to load', id, candidates);
-        return;
-      }
+      if (i >= candidates.length) { console.error('[P21] failed to load', id, candidates); return; }
       const url = `${P21_BASE}/${candidates[i++]}`;
       const probe = new Image();
       probe.onload  = () => { el.src = url; };
@@ -713,59 +753,87 @@
     tryNext();
   }
 
-  // Erzeuge Kandidatenlisten nach deiner echten Dateikonvention
-  // z.B. blur:  stem_blur_s{sigma}.jpg
-  //      high:  stem_high_s{sigma}.jpg
-  //      sharp: stem_sharp_s{sigma}_a{alpha}.jpg
-  function blurCandidates(stem, sigmas) {
-    return sigmas.map(s => `${stem}_blur_s${s}.jpg`);
-  }
-  function highCandidates(stem, sigmas) {
-    return sigmas.map(s => `${stem}_high_s${s}.jpg`);
-  }
-  function sharpCandidates(stem, sigmas, alpha) {
-    return sigmas.map(s => `${stem}_sharp_s${s}_a${alpha}.jpg`);
-  }
+  function blurCandidates(stem, sigmas){ return sigmas.map(s => `${stem}_blur_s${s}.jpg`); }
+  function highCandidates(stem, sigmas){ return sigmas.map(s => `${stem}_high_s${s}.jpg`); }
+  function sharpCandidates(stem, sigmas, a){ return sigmas.map(s => `${stem}_sharp_s${s}_a${a}.jpg`); }
+  const SIGMA_ORDER = ['1.60','1.00','2.00'];
 
-  // Reihenfolge der ausprobierten Sigmas (nach deinen Files vorhanden: 1.00, 1.60, 2.00)
-  const SIGMA_ORDER = ['1.60', '1.00', '2.00'];
-  // Alpha-Werte, die du anzeigst
-  const ALPHAS = ['0.50', '1.00', '1.50'];
-
-  // === Taj ===
   setImgTry('taj-blur',      blurCandidates('taj', SIGMA_ORDER));
   setImgTry('taj-high',      highCandidates('taj', SIGMA_ORDER));
   setImgTry('taj-sharp-a05', sharpCandidates('taj', SIGMA_ORDER, '0.50'));
   setImgTry('taj-sharp-a10', sharpCandidates('taj', SIGMA_ORDER, '1.00'));
   setImgTry('taj-sharp-a15', sharpCandidates('taj', SIGMA_ORDER, '1.50'));
 
-  // === carrying-tobi ===
   setImgTry('tobi-blur',      blurCandidates('carrying-tobi', SIGMA_ORDER));
   setImgTry('tobi-high',      highCandidates('carrying-tobi', SIGMA_ORDER));
   setImgTry('tobi-sharp-a05', sharpCandidates('carrying-tobi', SIGMA_ORDER, '0.50'));
   setImgTry('tobi-sharp-a10', sharpCandidates('carrying-tobi', SIGMA_ORDER, '1.00'));
   setImgTry('tobi-sharp-a15', sharpCandidates('carrying-tobi', SIGMA_ORDER, '1.50'));
 
-  // === half-dome ===
   setImgTry('dome-blur',      blurCandidates('half-dome', SIGMA_ORDER));
   setImgTry('dome-high',      highCandidates('half-dome', SIGMA_ORDER));
   setImgTry('dome-sharp-a05', sharpCandidates('half-dome', SIGMA_ORDER, '0.50'));
   setImgTry('dome-sharp-a10', sharpCandidates('half-dome', SIGMA_ORDER, '1.00'));
   setImgTry('dome-sharp-a15', sharpCandidates('half-dome', SIGMA_ORDER, '1.50'));
 
-  // === Evaluation (sharp → blur → re-sharpen) ===
-  // Original ist bei dir exakt so benannt:
   setImgTry('eval-orig', ['half-dome_orig.jpg']);
+  setImgTry('eval-blur', blurCandidates('half-dome', ['2.00','1.60','1.00']));
+  setImgTry('eval-resharp-a05', sharpCandidates('half-dome', ['2.00','1.60','1.00'], '0.50'));
+  setImgTry('eval-resharp-a10', sharpCandidates('half-dome', ['2.00','1.60','1.00'], '1.00'));
+  setImgTry('eval-resharp-a15', sharpCandidates('half-dome', ['2.00','1.60','1.00'], '1.50'));
 
-  // Für die „künstlich geblurt“-Variante verwenden wir bevorzugt s2.00 (falls vorhanden),
-  // sonst die übrigen Sigmas derselben Ordnung.
-  setImgTry('eval-blur', blurCandidates('half-dome', ['2.00', '1.60', '1.00']));
+  /* ================= Part 2.2 assets (Hybrid Images) ================= */
+  const P22_BASE = `${PAGE_BASE}/outputs/part2_hybrid`;
 
-  // Re-sharpen: gleiches Sigma wie oben (wir probieren s2.00 zuerst)
-  setImgTry('eval-resharp-a05', sharpCandidates('half-dome', ['2.00', '1.60', '1.00'], '0.50'));
-  setImgTry('eval-resharp-a10', sharpCandidates('half-dome', ['2.00', '1.60', '1.00'], '1.00'));
-  setImgTry('eval-resharp-a15', sharpCandidates('half-dome', ['2.00', '1.60', '1.00'], '1.50'));
+  function setHybrid(pair, id, file){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.src = `${P22_BASE}/${pair}/${file}`;
+  }
+  function setHybridTry(pair, id, candidates){
+    const el = document.getElementById(id);
+    if(!el) return;
+    let i=0;
+    function tryNext(){
+      if(i>=candidates.length){ console.warn('[P22]', id, 'not found candidates', candidates); return; }
+      const url = `${P22_BASE}/${pair}/${candidates[i++]}`;
+      const probe = new Image();
+      probe.onload = ()=>{ el.src=url; };
+      probe.onerror = tryNext;
+      probe.src = url;
+    }
+    tryNext();
+  }
 
+  // Helper: Low/High-Dateien tragen sigma im Namen
+  const SIGMAS_LOW  = ['11.00','10.00','9.00','8.00','7.00','6.00'];
+  const SIGMAS_HIGH = ['3.50','3.00','2.50','2.20','2.00','1.80'];
+
+  // ---- Derek + Nutmeg (pair dir: derek_nutmeg) ----
+  setHybrid('derek_nutmeg','dn-A-orig','A_original.jpg');
+  setHybrid('derek_nutmeg','dn-B-orig','B_original.jpg');
+  setHybrid('derek_nutmeg','dn-A-align','A_aligned.jpg');
+  setHybrid('derek_nutmeg','dn-B-align','B_aligned.jpg');
+  setHybridTry('derek_nutmeg','dn-lowA',  SIGMAS_LOW.map(s=>`lowA_sigma${s}.jpg`));
+  setHybridTry('derek_nutmeg','dn-highB', SIGMAS_HIGH.map(s=>`highB_sigma${s}.jpg`));
+  setHybrid('derek_nutmeg','dn-hybrid','hybrid.jpg');
+  setHybrid('derek_nutmeg','dn-fftA','fft_A.jpg');
+  setHybrid('derek_nutmeg','dn-fftB','fft_B.jpg');
+  setHybrid('derek_nutmeg','dn-fftLow','fft_lowA.jpg');
+  setHybrid('derek_nutmeg','dn-fftHigh','fft_highB.jpg');
+  setHybrid('derek_nutmeg','dn-fftHybrid','fft_hybrid.jpg');
+  setHybrid('derek_nutmeg','dn-gpyr','gaussian_pyramid.jpg');
+  setHybrid('derek_nutmeg','dn-lpyr','laplacian_pyramid.jpg');
+
+  // ---- Hofmann + Berger (pair dir: hofmann_berger) ----
+  setHybrid('hofmann_berger','hb-A-orig','A_original.jpg');
+  setHybrid('hofmann_berger','hb-B-orig','B_original.jpg');
+  setHybrid('hofmann_berger','hb-hybrid','hybrid.jpg');
+
+  // ---- I-House + Ruben (pair dir: house_ruben) ----
+  setHybrid('house_ruben','hr-A-orig','A_original.jpg');
+  setHybrid('house_ruben','hr-B-orig','B_original.jpg');
+  setHybrid('house_ruben','hr-hybrid','hybrid.jpg');
 </script>
 </body>
 </html>
