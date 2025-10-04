@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project 3: Image Warping & Mosaicing</title>
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#111;min-height:100vh;padding:40px 20px}
+    .container{max-width:1100px;margin:0 auto}
+    .header{text-align:center;margin-bottom:28px}
+    h1{font-size:2rem;font-weight:700;margin-bottom:6px}
+    .date{font-size:1rem;color:#555}
+    .section{margin:32px 0}
+    .section-title{display:flex;align-items:center;margin-bottom:12px}
+    .section-line{width:4px;height:22px;background:#111;margin-right:10px;border-radius:2px}
+    .section-title h2{font-size:1.15rem}
+    .description{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;line-height:1.5}
+    .image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px}
+    .image-grid.onecol{grid-template-columns:1fr}
+    .image-grid.fixed3{grid-template-columns:repeat(3,1fr)}
+    .image-container{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:10px}
+    .image-container img{display:block;width:100%;height:auto;border-radius:6px}
+    .image-caption{margin-top:8px;text-align:center;color:#444;font-size:.9rem}
+    .kbd{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f2f2f2;border:1px solid #e6e6e6;border-radius:6px;padding:1px 6px}
+    .pill{display:inline-block;padding:3px 8px;border:1px solid #ddd;border-radius:999px;font-size:.85rem;background:#fff;margin-left:6px}
+    pre{background:#0b0b0b;color:#eee;padding:12px;border-radius:10px;overflow:auto;font-size:.9rem}
+    .back-button{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 20px;color:#000;font-size:1rem;font-weight:500;cursor:pointer;transition:.2s;text-decoration:none}
+    .back-button:hover{transform:translateX(-50%) translateY(-2px);background:#f5f5f5}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Project 3: Image Warping &amp; Mosaicing</h1>
+    <div class="date">CS180 • Fall 2025</div>
+  </div>
+
+  <!-- ================= Overview ================= -->
+  <div class="section">
+    <div class="section-title"><div class="section-line"></div><h2>Overview</h2></div>
+    <div class="description">
+      I shoot overlapping photos, recover homographies from clicked correspondences (DLT + least squares),
+      implement inverse warping (nearest &amp; bilinear), and blend registered images into mosaics.  
+      For blending, I compare a simple center-weighted feather (<i>Hann</i>) with two distance-based variants:
+      a linear edge distance (<i>dist</i>) and a <b><i>bwdist</i></b>/distance-transform weight (blurred + normalized).
+    </div>
+  </div>
+
+  <!-- ================= A.1 — Input photos ================= -->
+  <div class="section" id="A1">
+    <div class="section-title"><div class="section-line"></div><h2>A.1 — Input Photos</h2></div>
+    <div class="description">
+      Three scenes; each has <b>left</b>, <b>center</b>, <b>right</b> with 40–70% field overlap.
+      All pairs are warped into the center frame for mosaicing.
+    </div>
+    <div id="a1-scenes"></div>
+  </div>
+
+  <!-- ================= A.2 — Homographies ================= -->
+  <div class="section" id="A2">
+    <div class="section-title"><div class="section-line"></div><h2>A.2 — Recover Homographies</h2></div>
+    <div class="description">
+      I click ≥10 correspondences per pair and solve the linear system \(Ah=b\) for the 8 DoF of \(H\) (with \(H_{33}=1\)).
+      Below: left→center and right→center matches for each scene, plus the recovered matrices.
+      <span id="a2-meta" class="pill">pairs: ihouse, stadium_low, stadium_high</span>
+    </div>
+    <div id="a2-blocks"></div>
+  </div>
+
+  <!-- ================= A.4 — Mosaics & Weights ================= -->
+  <div class="section" id="A4">
+    <div class="section-title"><div class="section-line"></div><h2>A.4 — Blending into a Mosaic</h2></div>
+    <div class="description">
+      Each scene is rendered with three weighting schemes:
+      <ul style="margin-left:1rem;">
+        <li><b>Hann</b> — analytic center-to-edge falloff.</li>
+        <li><b>dist</b> — linear distance to image edges (normalized per pixel).</li>
+        <li><b>bwdist</b> — distance transform inside each warped mask, Gaussian-blurred and re-masked; then per-pixel normalized. Produces very soft seams (as in the course video).</li>
+      </ul>
+      I show the final mosaics and the three weight maps \(w_1,w_2,w_3\) (left, center, right).
+    </div>
+    <div id="a4-scenes"></div>
+  </div>
+
+  <!-- ================= Takeaway ================= -->
+  <div class="section" id="takeaway">
+    <div class="section-title"><div class="section-line"></div><h2>One Big Takeaway</h2></div>
+    <div class="description">
+      Seam quality is mostly about the <b>alpha design</b>. Distance-transform weights (with blur and mild center bias)
+      fade both fine detail and coarse shading consistently, so even misalignments leave minimal artifacts compared to simple linear feathering.
+    </div>
+  </div>
+</div>
+
+<a href="../../index.html" class="back-button">← Back to CS 180</a>
+
+<script>
+/* ---------- Paths based on your repo layout ---------- */
+const PAGE_BASE = location.pathname.includes('/projects/project3/') ? '.' : './projects/project3';
+const IMAGES    = `${PAGE_BASE}/code/images`;
+const OUT       = `${PAGE_BASE}/outputs`;
+const A2        = `${OUT}/a2`;
+const A4_BASIC  = `${OUT}/a4_mosaics`;                // simple feather result (+ one global weights set)
+const A4_W      = `${OUT}/a4_weighted`;               // hann / dist / bwdist subfolders
+
+const SCENES = [
+  { key:'ihouse',       label:'International House' },
+  { key:'stadium_low',  label:'Stadium (low angle)' },
+  { key:'stadium_high', label:'Stadium (high angle)' },
+];
+
+/* ---------- Helpers ---------- */
+function el(tag, attrs={}, html=''){
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v]) => e.setAttribute(k, v));
+  if(html) e.innerHTML = html;
+  return e;
+}
+function imgBox(src, caption){
+  const box = el('div', {class:'image-container'});
+  const im  = el('img'); im.src = src; im.loading = 'lazy';
+  const cap = el('div', {class:'image-caption'}, caption || '');
+  box.appendChild(im); box.appendChild(cap);
+  return box;
+}
+async function exists(url){
+  try{ const r = await fetch(url, {method:'HEAD', cache:'no-store'}); return r.ok; }
+  catch(e){ return false; }
+}
+
+/* ---------- A.1 input images ---------- */
+(async ()=>{
+  const host = document.getElementById('a1-scenes');
+  for(const sc of SCENES){
+    const wrap = el('div', {class:'section'});
+    wrap.appendChild(el('div', {class:'section-title'},
+      `<div class="section-line"></div><h2>${sc.label} — Inputs</h2>`));
+    const grid = el('div', {class:'image-grid'});
+    grid.appendChild(imgBox(`${IMAGES}/${sc.key}_left.jpg`,   'Left'));
+    grid.appendChild(imgBox(`${IMAGES}/${sc.key}_center.jpg`, 'Center'));
+    grid.appendChild(imgBox(`${IMAGES}/${sc.key}_right.jpg`,  'Right'));
+    wrap.appendChild(grid);
+    host.appendChild(wrap);
+  }
+})();
+
+/* ---------- A.2 correspondences + H ---------- */
+(async ()=>{
+  const host = document.getElementById('a2-blocks');
+  for(const sc of SCENES){
+    const wrap = el('div', {class:'section'});
+    wrap.appendChild(el('div', {class:'section-title'},
+      `<div class="section-line"></div><h2>${sc.label} — Correspondences &amp; H</h2>`));
+
+    const grid = el('div', {class:'image-grid'});
+    // pairs overlays
+    const Lpairs = `${A2}/${sc.key}_L_to_C_pairs.png`;
+    const Rpairs = `${A2}/${sc.key}_R_to_C_pairs.png`;
+    if(await exists(Lpairs)) grid.appendChild(imgBox(Lpairs, 'Left→Center matches'));
+    if(await exists(Rpairs)) grid.appendChild(imgBox(Rpairs, 'Right→Center matches'));
+    wrap.appendChild(grid);
+
+    // H matrices (if saved as text)
+    const HL = `${A2}/H_${sc.key.replace('stadium','stadium')}_L_to_C.txt`;
+    const HR = `${A2}/H_${sc.key.replace('stadium','stadium')}_R_to_C.txt`;
+    const pre = el('pre'); const code = el('code');
+    let txt = '';
+    try{
+      const rL = await fetch(HL); if(rL.ok) txt += `# H_${sc.key}_L_to_C\n` + await rL.text() + '\n';
+      const rR = await fetch(HR); if(rR.ok) txt += `# H_${sc.key}_R_to_C\n` + await rR.text();
+    }catch(e){}
+    code.textContent = txt || '# (H text files not found)';
+    pre.appendChild(code); wrap.appendChild(pre);
+
+    host.appendChild(wrap);
+  }
+})();
+
+/* ---------- A.4 mosaics + weight maps ---------- */
+(async ()=>{
+  const host = document.getElementById('a4-scenes');
+
+  // weight modes we display
+  const MODES = [
+    { key:'hann',   label:'Hann feather' },
+    { key:'dist',   label:'Linear distance to edges (dist)' },
+    { key:'bwdist', label:'Distance Transform (bwdist) — blurred & normalized' }
+  ];
+
+  for(const sc of SCENES){
+    const block = el('div', {class:'section'});
+    block.appendChild(el('div', {class:'section-title'},
+      `<div class="section-line"></div><h2>${sc.label} — Mosaics &amp; Weight Maps</h2>`));
+
+    // --- Basic mosaic (original feather)
+    const basicGrid = el('div', {class:'image-grid'});
+    const basicMosaic = `${A4_BASIC}/${sc.key}_mosaic.jpg`;
+    if(await exists(basicMosaic)){
+      basicGrid.appendChild(imgBox(basicMosaic, 'Mosaic (baseline feather)'));
+    }
+    // If you exported one global set of weights in a4_mosaics/weights/
+    const w1 = `${A4_BASIC}/weights/weight_w1_left.png`;
+    const w2 = `${A4_BASIC}/weights/weight_w2_center.png`;
+    const w3 = `${A4_BASIC}/weights/weight_w3_right.png`;
+    const basicWeights = el('div', {class:'image-grid'});
+    if(await exists(w1)) basicWeights.appendChild(imgBox(w1, 'w₁ (left) — feather'));
+    if(await exists(w2)) basicWeights.appendChild(imgBox(w2, 'w₂ (center) — feather'));
+    if(await exists(w3)) basicWeights.appendChild(imgBox(w3, 'w₃ (right) — feather'));
+    if(basicWeights.children.length) block.appendChild(basicWeights);
+    if(basicGrid.children.length)    block.appendChild(basicGrid);
+
+    // --- Weighted variants per mode
+    for(const mode of MODES){
+      const modeWrap = el('div', {class:'section'});
+      modeWrap.appendChild(el('div', {class:'section-title'},
+        `<div class="section-line"></div><h2>${mode.label}</h2>`));
+
+      // mosaic path (your files under dist/bwdist were saved as *_mosaic_dist.jpg)
+      const mosaicCandidate1 = `${A4_W}/${mode.key}/${sc.key}_mosaic.jpg`;
+      const mosaicCandidate2 = `${A4_W}/${mode.key}/${sc.key}_mosaic_dist.jpg`;
+      const mosaicPath = (await exists(mosaicCandidate1)) ? mosaicCandidate1 : mosaicCandidate2;
+
+      const grid = el('div', {class:'image-grid'});
+      if(await exists(mosaicPath)){
+        grid.appendChild(imgBox(mosaicPath, `Mosaic (${mode.key})`));
+      }
+
+      // weights: a4_weighted/<mode>/weights/<scene>/weight_w{1,2,3}_*.png
+      const wdir = `${A4_W}/${mode.key}/weights/${sc.key}`;
+      const W1 = `${wdir}/weight_w1_left.png`;
+      const W2 = `${wdir}/weight_w2_center.png`;
+      const W3 = `${wdir}/weight_w3_right.png`;
+      const wgrid = el('div', {class:'image-grid'});
+      if(await exists(W1)) wgrid.appendChild(imgBox(W1, `w₁ (left) — ${mode.key}`));
+      if(await exists(W2)) wgrid.appendChild(imgBox(W2, `w₂ (center) — ${mode.key}`));
+      if(await exists(W3)) wgrid.appendChild(imgBox(W3, `w₃ (right) — ${mode.key}`));
+
+      if(wgrid.children.length) modeWrap.appendChild(wgrid);
+      if(grid.children.length)  modeWrap.appendChild(grid);
+      if(modeWrap.children.length>1) block.appendChild(modeWrap);
+    }
+
+    host.appendChild(block);
+  }
+})();
+</script>
+</body>
+</html>
