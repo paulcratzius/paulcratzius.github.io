@@ -16,7 +16,7 @@
     .section-title{display:flex;align-items:center;margin-bottom:12px}
     .section-line{width:4px;height:22px;background:#111;margin-right:10px;border-radius:2px}
     .section-title h2{font-size:1.15rem}
-    .description{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;line-height:1.5}
+    .description{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;line-height:1.6}
     .image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px}
     .image-grid.onecol{grid-template-columns:1fr}
     .image-grid.fixed3{grid-template-columns:repeat(3,1fr)}
@@ -28,6 +28,9 @@
     pre{background:#0b0b0b;color:#eee;padding:12px;border-radius:10px;overflow:auto;font-size:.9rem}
     .back-button{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 20px;color:#000;font-size:1rem;font-weight:500;cursor:pointer;transition:.2s;text-decoration:none}
     .back-button:hover{transform:translateX(-50%) translateY(-2px);background:#f5f5f5}
+    .subnote{font-size:.95rem;color:#333;margin-top:12px}
+    .bul{margin-left:1rem}
+    .eq{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f7f7f7;border:1px solid #eee;border-radius:6px;padding:0 6px}
   </style>
 </head>
 <body>
@@ -41,10 +44,19 @@
   <div class="section">
     <div class="section-title"><div class="section-line"></div><h2>Overview</h2></div>
     <div class="description">
-      I shoot overlapping photos, recover homographies from clicked correspondences (DLT + least squares),
-      implement inverse warping (nearest &amp; bilinear), and blend registered images into mosaics.  
-      For blending, I compare a simple center-weighted feather (<i>Hann</i>) with two distance-based variants:
-      a linear edge distance (<i>dist</i>) and a <b><i>bwdist</i></b>/distance-transform weight (blurred + normalized).
+      The goal of this project is to turn a few partially-overlapping photographs into a single coherent panorama.
+      Technically, we (1) estimate a <b>homography</b> between views so that one image can be projected into the coordinate
+      system of another, (2) <b>warp</b> the pixels via inverse mapping with either nearest-neighbor or bilinear interpolation,
+      and (3) <b>blend</b> overlapping regions so seams disappear. The hardest parts in practice are getting stable
+      correspondences (homographies amplify small point errors) and designing per-pixel <b>weights</b> that gently fade one
+      image into another. I compare three weighting strategies—analytic Hann, geometric “distance to border,” and a
+      <i>distance-transform (bwdist)</i> inside the warped footprint—and also show a <b>Laplacian pyramid</b> blend that
+      reduces high-frequency seams and small exposure differences across multiple scales.
+      <div class="subnote">
+        <b>Why this works:</b> for planar scenes (or distant scenery), different photos are related by a projective transform.
+        Once images agree geometrically, artifacts mainly live in the <i>frequency domain</i> (edges, textures, lighting). Good
+        alpha design + multi-scale blending suppresses those artifacts where they occur (from fine detail to broad shading).
+      </div>
     </div>
   </div>
 
@@ -52,8 +64,14 @@
   <div class="section" id="A1">
     <div class="section-title"><div class="section-line"></div><h2>A.1 — Input Photos</h2></div>
     <div class="description">
-      Three scenes; each has <b>left</b>, <b>center</b>, <b>right</b> with 40–70% field overlap.
-      All pairs are warped into the center frame for mosaicing.
+      I captured three scenes with a fixed center of projection (rotate in place) to encourage true projective relations.
+      Each scene has <b>left</b>, <b>center</b>, and <b>right</b> views with roughly 40–70% overlap. The center image acts as
+      the reference; the others are warped into the center’s coordinate frame before blending.
+      <div class="subnote">
+        <b>Shooting considerations:</b> (i) avoid lens extremes that cause strong radial distortion; (ii) take the frames close
+        in time to minimize lighting or subject changes; (iii) include textured, rigid features (corners, edges) so point
+        selection is easy and homographies are well-conditioned; (iv) wide-ish FOV tends to make mosaics more dramatic.
+      </div>
     </div>
     <div id="a1-scenes"></div>
   </div>
@@ -62,25 +80,64 @@
   <div class="section" id="A2">
     <div class="section-title"><div class="section-line"></div><h2>A.2 — Recover Homographies</h2></div>
     <div class="description">
-      I click ≥10 correspondences per pair and solve the linear system \(Ah=b\) for the 8 DoF of \(H\) (with \(H_{33}=1\)).
-      Below: left→center and right→center matches for each scene, plus the recovered matrices.
+      Given clicked correspondences \((x,y) \leftrightarrow (x',y')\), the homography \(H\in\mathbb{R}^{3\times3}\) maps
+      homogeneous coordinates via \(\mathbf{p}' \sim H \mathbf{p}\) with 8 degrees of freedom (we set \(H_{33}=1\)).
+      Using the DLT formulation, each match contributes two linear equations of the form
+      <span class="eq">p' × (H p) = 0</span>, which we stack into a system \(A h = b\) for the 8 unknowns in \(h\).
+      With only four points the solution is exact but fragile; I use ≥10 points and solve in the least-squares sense.
+      <div class="subnote">
+        <b>Stability tricks:</b> (i) spread points over the image; (ii) avoid nearly collinear configurations; (iii) optional
+        coordinate normalization (centering and scaling) improves conditioning; (iv) report reprojection RMSE to catch outliers.
+      </div>
       <span id="a2-meta" class="pill">pairs: ihouse, stadium_low, stadium_high</span>
     </div>
     <div id="a2-blocks"></div>
+  </div>
+
+  <!-- ================= A.3 — Warping (background theory) ================= -->
+  <div class="section" id="A3">
+    <div class="section-title"><div class="section-line"></div><h2>A.3 — Inverse Warping &amp; Interpolation</h2></div>
+    <div class="description">
+      To synthesize a mosaic on a chosen canvas, I iterate over canvas pixels and map each one <i>back</i> into the source:
+      \(\mathbf{x}_s \sim H^{-1}\mathbf{x}_c\). Sampling at non-integer locations requires interpolation:
+      <ul class="bul">
+        <li><b>Nearest neighbor:</b> take the value of the closest pixel (fast, blocky on diagonals).</li>
+        <li><b>Bilinear:</b> blend the four surrounding pixels proportionally to sub-pixel offsets (smooth; default here).</li>
+      </ul>
+      The output bounding box is determined by transforming the source corners and taking min/max in canvas space.
+      Outside the warped footprint I keep a binary mask; it is crucial later for fair, per-pixel normalization of weights.
+    </div>
   </div>
 
   <!-- ================= A.4 — Mosaics & Weights ================= -->
   <div class="section" id="A4">
     <div class="section-title"><div class="section-line"></div><h2>A.4 — Blending into a Mosaic</h2></div>
     <div class="description">
-        Each scene is rendered with three weighting schemes:
-        <ul style="margin-left:1rem;">
-            <li><b>Hann</b> — analytic center-to-edge falloff.</li>
-            <li><b>dist</b> — linear distance to image edges (normalized per pixel).</li>
-            <li><b>bwdist</b> — distance transform inside each warped mask, Gaussian-blurred and re-masked; then per-pixel normalized.</li>
-        </ul>
-        In addition, I show a <b>Laplacian (multi-level) blend</b> between Center and the pre-blended Left/Right to suppress residual seams/ghosting.
-        </div>
+      After registration, overlapping pixels must be combined without producing visible seams. I compare three single-scale
+      alpha designs and one multi-scale method:
+      <ul class="bul">
+        <li><b>Hann feather (analytic):</b> For each warped image \(I_i\), define a 2D weight that falls smoothly to 0 at its
+          boundaries. A separable Hann is a common choice, e.g., \(w(x)=\tfrac12(1-\cos(2\pi t))\) with \(t\in[0,1]\) from
+          center to edge, applied horizontally and vertically and multiplied. Fast and effective when alignment is tight.</li>
+        <li><b>dist (distance to borders):</b> Compute the (normalized) Euclidean distance from each pixel to the rectangle’s
+          edges (or bounding box in canvas). Far interior pixels get higher weight, edge pixels approach 0. This gives a
+          geometry-aware alternative to Hann with slightly wider gentle ramps.</li>
+        <li><b>bwdist (distance transform inside footprint):</b> Build a <i>binary mask</i> of each warped footprint in canvas space
+          (1 inside, 0 outside). Run a distance transform <span class="eq">D = bwdist(1−mask)</span> so values grow with distance
+          to the mask boundary, optionally blur \(D\) by a small \(\sigma\) to remove sharp ridges, then zero out outside the
+          mask and <b>normalize across images</b> at each pixel:
+          <span class="eq">w_i = D_i / \sum_j D_j</span>. This explicitly favors the centers of footprints and yields very soft seams
+          in overlap zones—especially helpful when slight parallax or exposure differences remain.</li>
+        <li><b>Laplacian pyramid (multi-level):</b> Decompose each input into Gaussian (low-pass) and Laplacian (band-pass) stacks.
+          Build a <i>Gaussian stack of the alpha mask</i> and blend <i>per level</i>:
+          <span class="eq">L^*_{k} = M_k \cdot L^A_k + (1-M_k)\cdot L^B_k</span>. Finally, reconstruct by summing all blended
+          Laplacians plus the top Gaussian. Intuition: high-frequency seams (edges/texture) and low-frequency seams (lighting)
+          live at different scales; blending each band with a suitably blurred mask hides both kinds of artifacts.</li>
+      </ul>
+      Below I show the final mosaics and the weight maps \(w_1,w_2,w_3\) (left/center/right) used in each scheme. Notice that
+      <i>bwdist</i> weights get brightest near the center of each warped footprint and fade smoothly to 0 at the footprint’s edge,
+      matching the “intuitive” confidence in pixels far from cut boundaries.
+    </div>
     <div id="a4-scenes"></div>
   </div>
 
@@ -88,8 +145,11 @@
   <div class="section" id="takeaway">
     <div class="section-title"><div class="section-line"></div><h2>One Big Takeaway</h2></div>
     <div class="description">
-      Seam quality is mostly about the <b>alpha design</b>. Distance-transform weights (with blur and mild center bias)
-      fade both fine detail and coarse shading consistently, so even misalignments leave minimal artifacts compared to simple linear feathering.
+      Building a convincing mosaic is a two-part story. First, <b>geometry</b>: good correspondences and a stable homography
+      keep structures aligned so you aren’t fighting ghosting. Second, <b>photometry</b>: an alpha strategy matched to the
+      overlap and residual misalignment hides seams in both fine detail and broad shading. Distance-transform weights
+      approximate “confidence” in the interior of each warped footprint, while Laplacian blending distributes the transition
+      across spatial frequencies. Together they deliver clean panoramas even when conditions aren’t perfect.
     </div>
   </div>
 </div>
@@ -102,9 +162,9 @@ const PAGE_BASE = location.pathname.includes('/projects/project3/') ? '.' : './p
 const IMAGES    = `${PAGE_BASE}/images`;
 const OUT       = `${PAGE_BASE}/outputs`;
 const A2        = `${OUT}/a2`;
-const A4_BASIC  = `${OUT}/a4_mosaics`;                 // simple feather (frühere Variante)
+const A4_BASIC  = `${OUT}/a4_mosaics`;                 // simple feather (older variant)
 const A4_W      = `${OUT}/a4_weighted`;                // hann / dist / bwdist
-const A4_LAP    = `${OUT}/a4_weighted/laplacian`;      // neue Laplacian-Pipeline
+const A4_LAP    = `${OUT}/a4_weighted/laplacian`;      // Laplacian pipeline
 
 const SCENES = [
   { key:'ihouse',       label:'International House' },
@@ -120,9 +180,9 @@ function el(tag, attrs={}, html=''){
   return e;
 }
 function imgBox(src, caption){
-  const box = el('div', {class:'image-container'});
-  const im  = el('img'); im.src = src; im.loading = 'lazy';
-  const cap = el('div', {class:'image-caption'}, caption || '');
+  const box = document.createElement('div'); box.className='image-container';
+  const im  = document.createElement('img'); im.src = src; im.loading = 'lazy';
+  const cap = document.createElement('div'); cap.className='image-caption'; cap.textContent = caption || '';
   box.appendChild(im); box.appendChild(cap);
   return box;
 }
@@ -164,7 +224,7 @@ async function exists(url){
 
     const HL = `${A2}/H_${sc.key}_L_to_C.txt`;
     const HR = `${A2}/H_${sc.key}_R_to_C.txt`;
-    const pre = el('pre'); const code = el('code');
+    const pre = document.createElement('pre'); const code = document.createElement('code');
     let txt = '';
     try{
       const rL = await fetch(HL); if(rL.ok) txt += `# H_${sc.key}_L_to_C\n` + await rL.text() + '\n';
@@ -181,7 +241,6 @@ async function exists(url){
 (async ()=>{
   const host = document.getElementById('a4-scenes');
 
-  // Gewichtungs-Modi aus a4_weighted/<mode>/
   const MODES = [
     { key:'hann',   label:'Hann feather' },
     { key:'dist',   label:'Linear distance to edges (dist)' },
@@ -193,7 +252,7 @@ async function exists(url){
     block.appendChild(el('div', {class:'section-title'},
       `<div class="section-line"></div><h2>${sc.label} — Mosaics &amp; Weight Maps</h2>`));
 
-    // --- Simple baseline (frühere Feather-Version)
+    // Baseline feather (older pipeline)
     const basicGrid = el('div', {class:'image-grid'});
     const basicMosaic = `${A4_BASIC}/${sc.key}_mosaic.jpg`;
     if(await exists(basicMosaic)){
@@ -201,7 +260,7 @@ async function exists(url){
       block.appendChild(basicGrid);
     }
 
-    // --- Varianten hann/dist/bwdist (mit Gewichten)
+    // Variants hann/dist/bwdist (+ weights)
     for(const mode of MODES){
       const modeWrap = el('div', {class:'section'});
       modeWrap.appendChild(el('div', {class:'section-title'},
@@ -209,7 +268,7 @@ async function exists(url){
 
       const grid = el('div', {class:'image-grid'});
       const m1 = `${A4_W}/${mode.key}/${sc.key}_mosaic.jpg`;
-      const m2 = `${A4_W}/${mode.key}/${sc.key}_mosaic_dist.jpg`; // manche Läufe speicherten so
+      const m2 = `${A4_W}/${mode.key}/${sc.key}_mosaic_dist.jpg`;
       const mosaicPath = (await exists(m1)) ? m1 : (await exists(m2) ? m2 : '');
       if(mosaicPath) grid.appendChild(imgBox(mosaicPath, `Mosaic (${mode.key})`));
 
@@ -227,12 +286,11 @@ async function exists(url){
       if(modeWrap.children.length>1) block.appendChild(modeWrap);
     }
 
-    // --- NEW: Laplacian-Pyramid Blend Ergebnisse (a4_weighted/laplacian)
+    // Laplacian-Pyramid results
     const lapWrap = el('div', {class:'section'});
     lapWrap.appendChild(el('div', {class:'section-title'},
       `<div class="section-line"></div><h2>Laplacian Blend (multi-level)</h2>`));
 
-    // Hauptmosaik: versuche lap4, lap5, lap3… (abhängig vom run)
     const lapCandidates = [
       `${A4_LAP}/${sc.key}_mosaic_lap5.jpg`,
       `${A4_LAP}/${sc.key}_mosaic_lap4.jpg`,
@@ -243,14 +301,10 @@ async function exists(url){
     for(const c of lapCandidates){ if(await exists(c)){ lapMosaic = c; break; } }
     const lapGrid = el('div', {class:'image-grid'});
     if(lapMosaic) lapGrid.appendChild(imgBox(lapMosaic, 'Mosaic (Laplacian)'));
-
-    // Feather-Baseline der Laplacian-Pipeline (falls gespeichert)
     const lapFeather = `${A4_LAP}/${sc.key}_mosaic_feather.jpg`;
     if(await exists(lapFeather)) lapGrid.appendChild(imgBox(lapFeather, 'Mosaic (feather baseline in Lap pipeline)'));
-
     if(lapGrid.children.length) lapWrap.appendChild(lapGrid);
 
-    // Optional: Lap-Weights & Warps (falls du sie sehen willst)
     const wdirLap = `${A4_LAP}/weights/${sc.key}`;
     const WL = `${wdirLap}/left_weight.png`;
     const WC = `${wdirLap}/center_weight.png`;
@@ -261,7 +315,6 @@ async function exists(url){
     if(await exists(WR)) wLapGrid.appendChild(imgBox(WR, 'w₃ (right) — Lap pipeline'));
     if(wLapGrid.children.length) lapWrap.appendChild(wLapGrid);
 
-    // Optional: intermediates (LR-Blend) & warped
     const interLR = `${A4_LAP}/intermediate/${sc.key}/LR_blend_feather.jpg`;
     const warpedC = `${A4_LAP}/warped/${sc.key}/center_warped.jpg`;
     const warpedL = `${A4_LAP}/warped/${sc.key}/left_warped.jpg`;
@@ -274,7 +327,6 @@ async function exists(url){
     if(lapMore.children.length) lapWrap.appendChild(lapMore);
 
     if(lapWrap.children.length>1) block.appendChild(lapWrap);
-
     host.appendChild(block);
   }
 })();
