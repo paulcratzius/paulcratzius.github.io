@@ -73,14 +73,14 @@
   <div class="section" id="A4">
     <div class="section-title"><div class="section-line"></div><h2>A.4 — Blending into a Mosaic</h2></div>
     <div class="description">
-      Each scene is rendered with three weighting schemes:
-      <ul style="margin-left:1rem;">
-        <li><b>Hann</b> — analytic center-to-edge falloff.</li>
-        <li><b>dist</b> — linear distance to image edges (normalized per pixel).</li>
-        <li><b>bwdist</b> — distance transform inside each warped mask, Gaussian-blurred and re-masked; then per-pixel normalized. Produces very soft seams (as in the course video).</li>
-      </ul>
-      I show the final mosaics and the three weight maps \(w_1,w_2,w_3\) (left, center, right).
-    </div>
+        Each scene is rendered with three weighting schemes:
+        <ul style="margin-left:1rem;">
+            <li><b>Hann</b> — analytic center-to-edge falloff.</li>
+            <li><b>dist</b> — linear distance to image edges (normalized per pixel).</li>
+            <li><b>bwdist</b> — distance transform inside each warped mask, Gaussian-blurred and re-masked; then per-pixel normalized.</li>
+        </ul>
+        In addition, I show a <b>Laplacian (multi-level) blend</b> between Center and the pre-blended Left/Right to suppress residual seams/ghosting.
+        </div>
     <div id="a4-scenes"></div>
   </div>
 
@@ -102,8 +102,9 @@ const PAGE_BASE = location.pathname.includes('/projects/project3/') ? '.' : './p
 const IMAGES    = `${PAGE_BASE}/images`;
 const OUT       = `${PAGE_BASE}/outputs`;
 const A2        = `${OUT}/a2`;
-const A4_BASIC  = `${OUT}/a4_mosaics`;                // simple feather result (+ one global weights set)
-const A4_W      = `${OUT}/a4_weighted`;               // hann / dist / bwdist subfolders
+const A4_BASIC  = `${OUT}/a4_mosaics`;                 // simple feather (frühere Variante)
+const A4_W      = `${OUT}/a4_weighted`;                // hann / dist / bwdist
+const A4_LAP    = `${OUT}/a4_weighted/laplacian`;      // neue Laplacian-Pipeline
 
 const SCENES = [
   { key:'ihouse',       label:'International House' },
@@ -155,16 +156,14 @@ async function exists(url){
       `<div class="section-line"></div><h2>${sc.label} — Correspondences &amp; H</h2>`));
 
     const grid = el('div', {class:'image-grid'});
-    // pairs overlays
     const Lpairs = `${A2}/${sc.key}_L_to_C_pairs.png`;
     const Rpairs = `${A2}/${sc.key}_R_to_C_pairs.png`;
     if(await exists(Lpairs)) grid.appendChild(imgBox(Lpairs, 'Left→Center matches'));
     if(await exists(Rpairs)) grid.appendChild(imgBox(Rpairs, 'Right→Center matches'));
     wrap.appendChild(grid);
 
-    // H matrices (if saved as text)
-    const HL = `${A2}/H_${sc.key.replace('stadium','stadium')}_L_to_C.txt`;
-    const HR = `${A2}/H_${sc.key.replace('stadium','stadium')}_R_to_C.txt`;
+    const HL = `${A2}/H_${sc.key}_L_to_C.txt`;
+    const HR = `${A2}/H_${sc.key}_R_to_C.txt`;
     const pre = el('pre'); const code = el('code');
     let txt = '';
     try{
@@ -182,7 +181,7 @@ async function exists(url){
 (async ()=>{
   const host = document.getElementById('a4-scenes');
 
-  // weight modes we display
+  // Gewichtungs-Modi aus a4_weighted/<mode>/
   const MODES = [
     { key:'hann',   label:'Hann feather' },
     { key:'dist',   label:'Linear distance to edges (dist)' },
@@ -194,40 +193,26 @@ async function exists(url){
     block.appendChild(el('div', {class:'section-title'},
       `<div class="section-line"></div><h2>${sc.label} — Mosaics &amp; Weight Maps</h2>`));
 
-    // --- Basic mosaic (original feather)
+    // --- Simple baseline (frühere Feather-Version)
     const basicGrid = el('div', {class:'image-grid'});
     const basicMosaic = `${A4_BASIC}/${sc.key}_mosaic.jpg`;
     if(await exists(basicMosaic)){
       basicGrid.appendChild(imgBox(basicMosaic, 'Mosaic (baseline feather)'));
+      block.appendChild(basicGrid);
     }
-    // If you exported one global set of weights in a4_mosaics/weights/
-    const w1 = `${A4_BASIC}/weights/weight_w1_left.png`;
-    const w2 = `${A4_BASIC}/weights/weight_w2_center.png`;
-    const w3 = `${A4_BASIC}/weights/weight_w3_right.png`;
-    const basicWeights = el('div', {class:'image-grid'});
-    if(await exists(w1)) basicWeights.appendChild(imgBox(w1, 'w₁ (left) — feather'));
-    if(await exists(w2)) basicWeights.appendChild(imgBox(w2, 'w₂ (center) — feather'));
-    if(await exists(w3)) basicWeights.appendChild(imgBox(w3, 'w₃ (right) — feather'));
-    if(basicWeights.children.length) block.appendChild(basicWeights);
-    if(basicGrid.children.length)    block.appendChild(basicGrid);
 
-    // --- Weighted variants per mode
+    // --- Varianten hann/dist/bwdist (mit Gewichten)
     for(const mode of MODES){
       const modeWrap = el('div', {class:'section'});
       modeWrap.appendChild(el('div', {class:'section-title'},
         `<div class="section-line"></div><h2>${mode.label}</h2>`));
 
-      // mosaic path (your files under dist/bwdist were saved as *_mosaic_dist.jpg)
-      const mosaicCandidate1 = `${A4_W}/${mode.key}/${sc.key}_mosaic.jpg`;
-      const mosaicCandidate2 = `${A4_W}/${mode.key}/${sc.key}_mosaic_dist.jpg`;
-      const mosaicPath = (await exists(mosaicCandidate1)) ? mosaicCandidate1 : mosaicCandidate2;
-
       const grid = el('div', {class:'image-grid'});
-      if(await exists(mosaicPath)){
-        grid.appendChild(imgBox(mosaicPath, `Mosaic (${mode.key})`));
-      }
+      const m1 = `${A4_W}/${mode.key}/${sc.key}_mosaic.jpg`;
+      const m2 = `${A4_W}/${mode.key}/${sc.key}_mosaic_dist.jpg`; // manche Läufe speicherten so
+      const mosaicPath = (await exists(m1)) ? m1 : (await exists(m2) ? m2 : '');
+      if(mosaicPath) grid.appendChild(imgBox(mosaicPath, `Mosaic (${mode.key})`));
 
-      // weights: a4_weighted/<mode>/weights/<scene>/weight_w{1,2,3}_*.png
       const wdir = `${A4_W}/${mode.key}/weights/${sc.key}`;
       const W1 = `${wdir}/weight_w1_left.png`;
       const W2 = `${wdir}/weight_w2_center.png`;
@@ -241,6 +226,54 @@ async function exists(url){
       if(grid.children.length)  modeWrap.appendChild(grid);
       if(modeWrap.children.length>1) block.appendChild(modeWrap);
     }
+
+    // --- NEW: Laplacian-Pyramid Blend Ergebnisse (a4_weighted/laplacian)
+    const lapWrap = el('div', {class:'section'});
+    lapWrap.appendChild(el('div', {class:'section-title'},
+      `<div class="section-line"></div><h2>Laplacian Blend (multi-level)</h2>`));
+
+    // Hauptmosaik: versuche lap4, lap5, lap3… (abhängig vom run)
+    const lapCandidates = [
+      `${A4_LAP}/${sc.key}_mosaic_lap5.jpg`,
+      `${A4_LAP}/${sc.key}_mosaic_lap4.jpg`,
+      `${A4_LAP}/${sc.key}_mosaic_lap3.jpg`,
+      `${A4_LAP}/${sc.key}_mosaic_lap2.jpg`,
+    ];
+    let lapMosaic = '';
+    for(const c of lapCandidates){ if(await exists(c)){ lapMosaic = c; break; } }
+    const lapGrid = el('div', {class:'image-grid'});
+    if(lapMosaic) lapGrid.appendChild(imgBox(lapMosaic, 'Mosaic (Laplacian)'));
+
+    // Feather-Baseline der Laplacian-Pipeline (falls gespeichert)
+    const lapFeather = `${A4_LAP}/${sc.key}_mosaic_feather.jpg`;
+    if(await exists(lapFeather)) lapGrid.appendChild(imgBox(lapFeather, 'Mosaic (feather baseline in Lap pipeline)'));
+
+    if(lapGrid.children.length) lapWrap.appendChild(lapGrid);
+
+    // Optional: Lap-Weights & Warps (falls du sie sehen willst)
+    const wdirLap = `${A4_LAP}/weights/${sc.key}`;
+    const WL = `${wdirLap}/left_weight.png`;
+    const WC = `${wdirLap}/center_weight.png`;
+    const WR = `${wdirLap}/right_weight.png`;
+    const wLapGrid = el('div', {class:'image-grid'});
+    if(await exists(WL)) wLapGrid.appendChild(imgBox(WL, 'w₁ (left) — Lap pipeline'));
+    if(await exists(WC)) wLapGrid.appendChild(imgBox(WC, 'w₂ (center) — Lap pipeline'));
+    if(await exists(WR)) wLapGrid.appendChild(imgBox(WR, 'w₃ (right) — Lap pipeline'));
+    if(wLapGrid.children.length) lapWrap.appendChild(wLapGrid);
+
+    // Optional: intermediates (LR-Blend) & warped
+    const interLR = `${A4_LAP}/intermediate/${sc.key}/LR_blend_feather.jpg`;
+    const warpedC = `${A4_LAP}/warped/${sc.key}/center_warped.jpg`;
+    const warpedL = `${A4_LAP}/warped/${sc.key}/left_warped.jpg`;
+    const warpedR = `${A4_LAP}/warped/${sc.key}/right_warped.jpg`;
+    const lapMore = el('div', {class:'image-grid'});
+    if(await exists(interLR)) lapMore.appendChild(imgBox(interLR, 'Intermediate: L⊕R (feather)'));
+    if(await exists(warpedL)) lapMore.appendChild(imgBox(warpedL, 'Left warped → canvas'));
+    if(await exists(warpedC)) lapMore.appendChild(imgBox(warpedC, 'Center warped → canvas'));
+    if(await exists(warpedR)) lapMore.appendChild(imgBox(warpedR, 'Right warped → canvas'));
+    if(lapMore.children.length) lapWrap.appendChild(lapMore);
+
+    if(lapWrap.children.length>1) block.appendChild(lapWrap);
 
     host.appendChild(block);
   }
