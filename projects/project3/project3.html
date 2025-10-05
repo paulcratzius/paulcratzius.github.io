@@ -331,5 +331,19 @@ async function exists(url){
   }
 })();
 </script>
+<script>
+  function eagerLoadAllImages(){
+    document.querySelectorAll('img').forEach(img=>{
+      try { img.loading = 'eager'; } catch(e) {}
+      if (!img.complete && img.src) {
+        const a = new Image();
+        a.src = img.src;
+      }
+    });
+  }
+  window.addEventListener('beforeprint', eagerLoadAllImages);
+  // Optional: auch direkt nach dem Laden
+  window.addEventListener('load', eagerLoadAllImages);
+</script>
 </body>
 </html>
