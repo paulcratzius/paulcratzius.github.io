@@ -17,3 +17,9 @@ projects/project2/code/
 *.py~
 
 projects/project3/code/
+
+# submissions nicht versionieren
+projects/project3/submission/
+projects/project3/submission.zip
+*.zip
+
