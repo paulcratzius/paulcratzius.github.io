@@ -19,18 +19,26 @@
     .description{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;line-height:1.6}
     .image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px}
     .image-grid.onecol{grid-template-columns:1fr}
-    .image-grid.fixed3{grid-template-columns:repeat(3,1fr)}
     .image-container{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:10px}
     .image-container img{display:block;width:100%;height:auto;border-radius:6px}
     .image-caption{margin-top:8px;text-align:center;color:#444;font-size:.9rem}
     .kbd{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f2f2f2;border:1px solid #e6e6e6;border-radius:6px;padding:1px 6px}
     .pill{display:inline-block;padding:3px 8px;border:1px solid #ddd;border-radius:999px;font-size:.85rem;background:#fff;margin-left:6px}
     pre{background:#0b0b0b;color:#eee;padding:12px;border-radius:10px;overflow:auto;font-size:.9rem}
+
     .back-button{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 20px;color:#000;font-size:1rem;font-weight:500;cursor:pointer;transition:.2s;text-decoration:none}
     .back-button:hover{transform:translateX(-50%) translateY(-2px);background:#f5f5f5}
+
     .subnote{font-size:.95rem;color:#333;margin-top:12px}
     .bul{margin-left:1rem}
     .eq{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f7f7f7;border:1px solid #eee;border-radius:6px;padding:0 6px}
+
+    /* table */
+    table.tbl{width:100%;border-collapse:collapse;margin-top:12px}
+    .tbl th,.tbl td{border:1px solid #e5e5e5;padding:8px;text-align:left;vertical-align:top}
+    .tbl th{background:#fafafa}
+    .tbl caption{caption-side:bottom;color:#555;margin-top:6px;font-size:.9rem}
+    .muted{color:#666}
   </style>
 </head>
 <body>
@@ -44,18 +52,15 @@
   <div class="section">
     <div class="section-title"><div class="section-line"></div><h2>Overview</h2></div>
     <div class="description">
-      The goal of this project is to turn a few partially-overlapping photographs into a single coherent panorama.
-      Technically, we (1) estimate a <b>homography</b> between views so that one image can be projected into the coordinate
-      system of another, (2) <b>warp</b> the pixels via inverse mapping with either nearest-neighbor or bilinear interpolation,
-      and (3) <b>blend</b> overlapping regions so seams disappear. The hardest parts in practice are getting stable
-      correspondences (homographies amplify small point errors) and designing per-pixel <b>weights</b> that gently fade one
-      image into another. I compare three weighting strategies—analytic Hann, geometric “distance to border,” and a
-      <i>distance-transform (bwdist)</i> inside the warped footprint—and also show a <b>Laplacian pyramid</b> blend that
-      reduces high-frequency seams and small exposure differences across multiple scales.
+      I assemble panoramas from overlapping photos. The pipeline is simple in theory and picky in practice:
+      <b>estimate a homography</b> from point pairs, <b>resample</b> with inverse mapping, and <b>blend</b> the overlaps so that
+      transitions are invisible. The two failure modes are geometric (bad \(H\)) and photometric (hard seams). I explore
+      weighting strategies (Hann, edge-distance, distance-transform) and a compact <b>Laplacian pyramid</b> to hide both sharp and
+      low-frequency seams.
       <div class="subnote">
-        <b>Why this works:</b> for planar scenes (or distant scenery), different photos are related by a projective transform.
-        Once images agree geometrically, artifacts mainly live in the <i>frequency domain</i> (edges, textures, lighting). Good
-        alpha design + multi-scale blending suppresses those artifacts where they occur (from fine detail to broad shading).
+        Homographies are perfect for planar scenes or roughly distant content. Once the geometry is right, the remaining issues
+        are mostly about how intensity and detail should “hand off” between images—i.e., a problem of <i>where</i> and
+        <i>at which scale</i> to fade.
       </div>
     </div>
   </div>
@@ -64,13 +69,11 @@
   <div class="section" id="A1">
     <div class="section-title"><div class="section-line"></div><h2>A.1 — Input Photos</h2></div>
     <div class="description">
-      I captured three scenes with a fixed center of projection (rotate in place) to encourage true projective relations.
-      Each scene has <b>left</b>, <b>center</b>, and <b>right</b> views with roughly 40–70% overlap. The center image acts as
-      the reference; the others are warped into the center’s coordinate frame before blending.
+      Three scenes, each with <b>left</b>, <b>center</b>, and <b>right</b> frames (≈40–70% overlap). Camera rotated about one
+      point to minimize parallax. The center frame defines the canvas; side frames are projected into this coordinate system.
       <div class="subnote">
-        <b>Shooting considerations:</b> (i) avoid lens extremes that cause strong radial distortion; (ii) take the frames close
-        in time to minimize lighting or subject changes; (iii) include textured, rigid features (corners, edges) so point
-        selection is easy and homographies are well-conditioned; (iv) wide-ish FOV tends to make mosaics more dramatic.
+        Practical tips: avoid strong lens distortion, shoot quickly to keep lighting stable, and spread your clicked points over
+        the whole image so the linear system for \(H\) isn’t ill-conditioned.
       </div>
     </div>
     <div id="a1-scenes"></div>
@@ -78,34 +81,83 @@
 
   <!-- ================= A.2 — Homographies ================= -->
   <div class="section" id="A2">
-    <div class="section-title"><div class="section-line"></div><h2>A.2 — Recover Homographies</h2></div>
+    <div class="section-title"><div class="section-line"></div><h2>A.2 — Estimating Homographies</h2></div>
     <div class="description">
-      Given clicked correspondences \((x,y) \leftrightarrow (x',y')\), the homography \(H\in\mathbb{R}^{3\times3}\) maps
-      homogeneous coordinates via \(\mathbf{p}' \sim H \mathbf{p}\) with 8 degrees of freedom (we set \(H_{33}=1\)).
-      Using the DLT formulation, each match contributes two linear equations of the form
-      <span class="eq">p' × (H p) = 0</span>, which we stack into a system \(A h = b\) for the 8 unknowns in \(h\).
-      With only four points the solution is exact but fragile; I use ≥10 points and solve in the least-squares sense.
+      With point correspondences \((x,y)\leftrightarrow(x',y')\) we solve for \(H\in\mathbb{R}^{3\times3}\) (8 dof; fix \(H_{33}=1\)).
+      I use the normalized DLT and least squares over ≥10 pairs. Reporting <i>reprojection RMSE</i> per pair makes it easy to spot a
+      mislabeled click or weak configuration.
       <div class="subnote">
-        <b>Stability tricks:</b> (i) spread points over the image; (ii) avoid nearly collinear configurations; (iii) optional
-        coordinate normalization (centering and scaling) improves conditioning; (iv) report reprojection RMSE to catch outliers.
+        Sound heuristics: distribute points widely, avoid nearly collinear sets, and prefer corners/edges. The homography itself
+        is not the goal—it is a tool to make resampling well-posed.
       </div>
       <span id="a2-meta" class="pill">pairs: ihouse, stadium_low, stadium_high</span>
     </div>
     <div id="a2-blocks"></div>
   </div>
 
-  <!-- ================= A.3 — Warping (background theory) ================= -->
+  <!-- ================= A.3 — Warping (concept) ================= -->
   <div class="section" id="A3">
-    <div class="section-title"><div class="section-line"></div><h2>A.3 — Inverse Warping &amp; Interpolation</h2></div>
+    <div class="section-title"><div class="section-line"></div><h2>A.3 — Inverse Mapping &amp; Sampling</h2></div>
     <div class="description">
-      To synthesize a mosaic on a chosen canvas, I iterate over canvas pixels and map each one <i>back</i> into the source:
-      \(\mathbf{x}_s \sim H^{-1}\mathbf{x}_c\). Sampling at non-integer locations requires interpolation:
+      I treat pixel centers as the sampling grid. For each canvas location \(\mathbf{x}_c\) I compute
+      \(\mathbf{x}_s \sim H^{-1}\mathbf{x}_c\) and read the source. This guarantees a value for every canvas pixel and avoids gaps.
+      Two hand-rolled interpolants are used:
       <ul class="bul">
-        <li><b>Nearest neighbor:</b> take the value of the closest pixel (fast, blocky on diagonals).</li>
-        <li><b>Bilinear:</b> blend the four surrounding pixels proportionally to sub-pixel offsets (smooth; default here).</li>
+        <li><b>Nearest neighbor:</b> pick the closest integer coordinate. It preserves exact source values but produces stair-steps
+            along slanted edges.</li>
+        <li><b>Bilinear:</b> blend four neighbors by their subpixel offsets. It’s still cheap, suppresses jaggies, and slightly
+            smooths noise and high-frequency detail.</li>
       </ul>
-      The output bounding box is determined by transforming the source corners and taking min/max in canvas space.
-      Outside the warped footprint I keep a binary mask; it is crucial later for fair, per-pixel normalization of weights.
+      I also track a binary <i>valid mask</i> during warping. Later, when multiple warped images overlap, weights are normalized
+      per pixel so that the contributions sum to one.
+    </div>
+  </div>
+
+  <!-- ================= A.3 — Rectification Results ================= -->
+  <div class="section" id="A3R">
+    <div class="section-title"><div class="section-line"></div><h2>A.3 — Rectification Results &amp; Timings</h2></div>
+    <div class="description">
+      Rectification is a unit test for everything above: select the four corners of a planar patch (order: TL→TR→BR→BL),
+      map that quadrilateral to a fronto-parallel rectangle, and render with both interpolants. The figures below show the
+      clicked original, the target rectangle, and the two rectified outputs. If a <span class="kbd">timings.json</span> file exists
+      next to the images, the measured runtimes are displayed as well.
+    </div>
+    <div id="a3r-scenes"></div>
+
+    <div class="description">
+      <table class="tbl">
+        <thead>
+          <tr><th>Property</th><th>Nearest Neighbor</th><th>Bilinear</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>Edges & Lines</b></td>
+            <td>Clear but jagged on diagonals (aliasing)</td>
+            <td>Straighter, fewer stair-steps; slight softening</td>
+          </tr>
+          <tr>
+            <td><b>Fine Texture / Text</b></td>
+            <td>Can flicker / break into pixels</td>
+            <td>More legible; minor blur on tiny glyphs</td>
+          </tr>
+          <tr>
+            <td><b>Noise Behavior</b></td>
+            <td>Copies noise verbatim</td>
+            <td>Averaging reduces pixel noise</td>
+          </tr>
+          <tr>
+            <td><b>Cost per pixel</b></td>
+            <td>1 sample</td>
+            <td>4 samples + 3 blends</td>
+          </tr>
+          <tr>
+            <td><b>When I use it</b></td>
+            <td>Quick checks, debugging geometry</td>
+            <td>Final assets and mosaics</td>
+          </tr>
+        </tbody>
+        <caption>Both methods use the same inverse mapping and canvas bounds; only the sampling rule differs.</caption>
+      </table>
     </div>
   </div>
 
@@ -113,43 +165,37 @@
   <div class="section" id="A4">
     <div class="section-title"><div class="section-line"></div><h2>A.4 — Blending into a Mosaic</h2></div>
     <div class="description">
-      After registration, overlapping pixels must be combined without producing visible seams. I compare three single-scale
-      alpha designs and one multi-scale method:
+      After alignment, the main question is <i>how to share pixels</i> in overlaps. I tried three single-scale weightings and
+      one multi-scale variant:
       <ul class="bul">
-        <li><b>Hann feather (analytic):</b> For each warped image \(I_i\), define a 2D weight that falls smoothly to 0 at its
-          boundaries. A separable Hann is a common choice, e.g., \(w(x)=\tfrac12(1-\cos(2\pi t))\) with \(t\in[0,1]\) from
-          center to edge, applied horizontally and vertically and multiplied. Fast and effective when alignment is tight.</li>
-        <li><b>dist (distance to borders):</b> Compute the (normalized) Euclidean distance from each pixel to the rectangle’s
-          edges (or bounding box in canvas). Far interior pixels get higher weight, edge pixels approach 0. This gives a
-          geometry-aware alternative to Hann with slightly wider gentle ramps.</li>
-        <li><b>bwdist (distance transform inside footprint):</b> Build a <i>binary mask</i> of each warped footprint in canvas space
-          (1 inside, 0 outside). Run a distance transform <span class="eq">D = bwdist(1−mask)</span> so values grow with distance
-          to the mask boundary, optionally blur \(D\) by a small \(\sigma\) to remove sharp ridges, then zero out outside the
-          mask and <b>normalize across images</b> at each pixel:
-          <span class="eq">w_i = D_i / \sum_j D_j</span>. This explicitly favors the centers of footprints and yields very soft seams
-          in overlap zones—especially helpful when slight parallax or exposure differences remain.</li>
-        <li><b>Laplacian pyramid (multi-level):</b> Decompose each input into Gaussian (low-pass) and Laplacian (band-pass) stacks.
-          Build a <i>Gaussian stack of the alpha mask</i> and blend <i>per level</i>:
-          <span class="eq">L^*_{k} = M_k \cdot L^A_k + (1-M_k)\cdot L^B_k</span>. Finally, reconstruct by summing all blended
-          Laplacians plus the top Gaussian. Intuition: high-frequency seams (edges/texture) and low-frequency seams (lighting)
-          live at different scales; blending each band with a suitably blurred mask hides both kinds of artifacts.</li>
+        <li><b>Hann feather:</b> analytic falloff to zero near the image borders—simple and fast.</li>
+        <li><b>Edge-distance:</b> weights grow with distance to the rectangular bounds; broader, geometry-aware ramps.</li>
+        <li><b>Distance transform inside footprint:</b> compute a mask for each warped image and use the distance to the
+            mask boundary (optionally blurred) as the weight; then normalize across images per pixel.</li>
+        <li><b>Laplacian pyramid:</b> blend at several spatial scales with progressively blurred masks; hides both texture-level
+            seams and slow exposure changes.</li>
       </ul>
-      Below I show the final mosaics and the weight maps \(w_1,w_2,w_3\) (left/center/right) used in each scheme. Notice that
-      <i>bwdist</i> weights get brightest near the center of each warped footprint and fade smoothly to 0 at the footprint’s edge,
-      matching the “intuitive” confidence in pixels far from cut boundaries.
+      Below are the mosaics plus the corresponding weight maps \(w_1,w_2,w_3\) (left/center/right).
     </div>
     <div id="a4-scenes"></div>
   </div>
 
-  <!-- ================= Takeaway ================= -->
+  <!-- ================= Key Takeaways ================= -->
   <div class="section" id="takeaway">
-    <div class="section-title"><div class="section-line"></div><h2>One Big Takeaway</h2></div>
+    <div class="section-title"><div class="section-line"></div><h2>Key Takeaways</h2></div>
     <div class="description">
-      Building a convincing mosaic is a two-part story. First, <b>geometry</b>: good correspondences and a stable homography
-      keep structures aligned so you aren’t fighting ghosting. Second, <b>photometry</b>: an alpha strategy matched to the
-      overlap and residual misalignment hides seams in both fine detail and broad shading. Distance-transform weights
-      approximate “confidence” in the interior of each warped footprint, while Laplacian blending distributes the transition
-      across spatial frequencies. Together they deliver clean panoramas even when conditions aren’t perfect.
+      <ul class="bul">
+        <li><b>Rectification first:</b> If a flat surface can’t be made rectangular, the mosaic won’t work either. It’s the
+            quickest way to debug coordinate conventions and interpolation.</li>
+        <li><b>Per-pixel normalization is non-negotiable:</b> never sum raw weights—normalize so contributions add to one exactly
+            where any image is valid.</li>
+        <li><b>Weights encode trust:</b> distance-based weights emphasize interior pixels (farther from cut edges) and tolerate
+            small registration/exposure errors better than analytic windows.</li>
+        <li><b>Multi-scale saves stubborn seams:</b> two to five pyramid levels remove both crisp edge seams and wide luminance
+            steps without over-blurring.</li>
+        <li><b>Implementation details matter:</b> work in float [0,1], sample at pixel centers, cache \(H^{-1}\), and keep masks.
+            NN is great for speed; Bilinear is the default for deliverables.</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -162,14 +208,21 @@ const PAGE_BASE = location.pathname.includes('/projects/project3/') ? '.' : './p
 const IMAGES    = `${PAGE_BASE}/images`;
 const OUT       = `${PAGE_BASE}/outputs`;
 const A2        = `${OUT}/a2`;
-const A4_BASIC  = `${OUT}/a4_mosaics`;                 // simple feather (older variant)
-const A4_W      = `${OUT}/a4_weighted`;                // hann / dist / bwdist
-const A4_LAP    = `${OUT}/a4_weighted/laplacian`;      // Laplacian pipeline
+const A3R       = `${OUT}/a3_rectify`;          // rectification outputs
+const A4_BASIC  = `${OUT}/a4_mosaics`;
+const A4_W      = `${OUT}/a4_weighted`;
+const A4_LAP    = `${OUT}/a4_weighted/laplacian`;
 
 const SCENES = [
   { key:'ihouse',       label:'International House' },
   { key:'stadium_low',  label:'Stadium (low angle)' },
   { key:'stadium_high', label:'Stadium (high angle)' },
+];
+
+// Add/rename rectification examples here (basename of your folder inside outputs/a3_rectify/)
+const RECTIFY_LIST = [
+  { key:'hallway-picture', label:'Hallway (rectify)' },
+  { key:'table-outside',   label:'Table (outdoor) — rectify' },
 ];
 
 /* ---------- Helpers ---------- */
@@ -237,6 +290,77 @@ async function exists(url){
   }
 })();
 
+/* ---------- A.3 Rectification results + optional timings ---------- */
+(async ()=>{
+  const host = document.getElementById('a3r-scenes');
+  if(!host) return;
+
+  const SIZES_TRY = ['600x400','800x600','700x500'];
+
+  for(const r of RECTIFY_LIST){
+    const dir = `${A3R}/${r.key}`;
+    if(!(await exists(`${dir}/clicked_overlay.jpg`))) continue;
+
+    const wrap = el('div', {class:'section'});
+    wrap.appendChild(el('div', {class:'section-title'},
+      `<div class="section-line"></div><h2>Rectification — ${r.label}</h2>`));
+
+    const top = el('div', {class:'image-grid'});
+    if(await exists(`${dir}/clicked_overlay.jpg`))
+      top.appendChild(imgBox(`${dir}/clicked_overlay.jpg`, 'Original with 4 clicked corners'));
+    for(const s of SIZES_TRY){
+      const cand = `${dir}/target_rect_${s}.png`;
+      if(await exists(cand)){ top.appendChild(imgBox(cand, `Target rectangle (${s})`)); break; }
+    }
+    if(top.children.length) wrap.appendChild(top);
+
+    for(const s of SIZES_TRY){
+      const cmp = `${dir}/compare_${s}.png`;
+      if(await exists(cmp)){
+        const g = el('div', {class:'image-grid onecol'});
+        g.appendChild(imgBox(cmp, `Comparison (NN vs Bilinear) — ${s}`));
+        wrap.appendChild(g);
+      } else {
+        const nn  = `${dir}/rectified_nn_${s}.jpg`;
+        const bil = `${dir}/rectified_bil_${s}.jpg`;
+        const g = el('div', {class:'image-grid'});
+        let added = false;
+        if(await exists(nn)){ g.appendChild(imgBox(nn, `Nearest neighbor (${s})`)); added = true; }
+        if(await exists(bil)){ g.appendChild(imgBox(bil, `Bilinear (${s})`)); added = true; }
+        if(added) wrap.appendChild(g);
+      }
+    }
+
+    // Optional timings table if timings.json exists
+    // Schema suggestion:
+    // { "600x400": {"nn_ms": 14.2, "bil_ms": 112.7}, "800x600": {"nn_ms": 21.1, "bil_ms": 146.4} }
+    try{
+      const tpath = `${dir}/timings.json`;
+      if(await exists(tpath)){
+        const res = await fetch(tpath); const data = await res.json();
+        const table = document.createElement('table'); table.className = 'tbl';
+        table.innerHTML = `<thead><tr><th>Size</th><th>NN (ms)</th><th>Bilinear (ms)</th></tr></thead>`;
+        const tb = document.createElement('tbody');
+        Object.keys(data).forEach(k=>{
+          const tr = document.createElement('tr');
+          const nn = data[k].nn_ms?.toFixed ? data[k].nn_ms.toFixed(2) : data[k].nn_ms;
+          const bl = data[k].bil_ms?.toFixed ? data[k].bil_ms.toFixed(2) : data[k].bil_ms;
+          tr.innerHTML = `<td>${k}</td><td>${nn}</td><td>${bl}</td>`;
+          tb.appendChild(tr);
+        });
+        table.appendChild(tb);
+        const box = document.createElement('div'); box.className='description';
+        box.appendChild(table);
+        const cap = document.createElement('div'); cap.className='muted';
+        cap.textContent = 'Measured on my machine; single-threaded Python implementation.';
+        box.appendChild(cap);
+        wrap.appendChild(box);
+      }
+    }catch(e){/* ignore */}
+    if(wrap.children.length>1) host.appendChild(wrap);
+  }
+})();
+
 /* ---------- A.4 mosaics + weight maps ---------- */
 (async ()=>{
   const host = document.getElementById('a4-scenes');
@@ -286,7 +410,7 @@ async function exists(url){
       if(modeWrap.children.length>1) block.appendChild(modeWrap);
     }
 
-    // Laplacian-Pyramid results
+    // Laplacian results
     const lapWrap = el('div', {class:'section'});
     lapWrap.appendChild(el('div', {class:'section-title'},
       `<div class="section-line"></div><h2>Laplacian Blend (multi-level)</h2>`));
@@ -302,7 +426,7 @@ async function exists(url){
     const lapGrid = el('div', {class:'image-grid'});
     if(lapMosaic) lapGrid.appendChild(imgBox(lapMosaic, 'Mosaic (Laplacian)'));
     const lapFeather = `${A4_LAP}/${sc.key}_mosaic_feather.jpg`;
-    if(await exists(lapFeather)) lapGrid.appendChild(imgBox(lapFeather, 'Mosaic (feather baseline in Lap pipeline)'));
+    if(await exists(lapFeather)) lapGrid.appendChild(imgBox(lapFeather, 'Mosaic (feather baseline)'));
     if(lapGrid.children.length) lapWrap.appendChild(lapGrid);
 
     const wdirLap = `${A4_LAP}/weights/${sc.key}`;
@@ -315,34 +439,20 @@ async function exists(url){
     if(await exists(WR)) wLapGrid.appendChild(imgBox(WR, 'w₃ (right) — Lap pipeline'));
     if(wLapGrid.children.length) lapWrap.appendChild(wLapGrid);
 
-    const interLR = `${A4_LAP}/intermediate/${sc.key}/LR_blend_feather.jpg`;
-    const warpedC = `${A4_LAP}/warped/${sc.key}/center_warped.jpg`;
-    const warpedL = `${A4_LAP}/warped/${sc.key}/left_warped.jpg`;
-    const warpedR = `${A4_LAP}/warped/${sc.key}/right_warped.jpg`;
-    const lapMore = el('div', {class:'image-grid'});
-    if(await exists(interLR)) lapMore.appendChild(imgBox(interLR, 'Intermediate: L⊕R (feather)'));
-    if(await exists(warpedL)) lapMore.appendChild(imgBox(warpedL, 'Left warped → canvas'));
-    if(await exists(warpedC)) lapMore.appendChild(imgBox(warpedC, 'Center warped → canvas'));
-    if(await exists(warpedR)) lapMore.appendChild(imgBox(warpedR, 'Right warped → canvas'));
-    if(lapMore.children.length) lapWrap.appendChild(lapMore);
-
     if(lapWrap.children.length>1) block.appendChild(lapWrap);
     host.appendChild(block);
   }
 })();
 </script>
+
 <script>
   function eagerLoadAllImages(){
     document.querySelectorAll('img').forEach(img=>{
       try { img.loading = 'eager'; } catch(e) {}
-      if (!img.complete && img.src) {
-        const a = new Image();
-        a.src = img.src;
-      }
+      if (!img.complete && img.src) { const a = new Image(); a.src = img.src; }
     });
   }
   window.addEventListener('beforeprint', eagerLoadAllImages);
-  // Optional: auch direkt nach dem Laden
   window.addEventListener('load', eagerLoadAllImages);
 </script>
 </body>
