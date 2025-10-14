@@ -48,6 +48,18 @@
     .pipeline .step { background:#fff; border:1px solid #e5e5e5; border-radius:10px; padding:14px 18px; min-width:160px; text-align:center; font-weight:500; line-height:1.4; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
     .pipeline .step small { display:block; font-weight:400; color:#666; font-size:.85rem; margin-top:4px; }
     .pipeline .arrow { font-size:1.5rem; color:#555; }
+
+    /*B4*/
+    /* Bigger cards only for B4 outputs */
+    .image-grid.b4-large{
+      grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+      gap: 18px;
+    }
+    /* Optional: give the page a bit more room on wide screens */
+    @media (min-width: 1280px){
+      .container{ max-width: 1280px; }
+    }
+
   </style>
 </head>
 <body>
@@ -442,5 +454,15 @@
       fillDynamic('tbl-large-extra', extraRows, ['single-ssd','pyramid-ssd','pyramid-ncc','phase'], 'rgb_large_extra');
     })();
   </script>
+  <script>
+  // Enlarge only the B4 result grids
+  document.querySelectorAll('.section-title h2').forEach(h=>{
+    if(/RANSAC|Auto mosaic/i.test(h.textContent)){
+      const sec = h.closest('.section');
+      sec?.querySelectorAll('.image-grid').forEach(g=>g.classList.add('b4-large'));
+    }
+  });
+  </script>
+
 </body>
 </html>
