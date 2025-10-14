@@ -19,26 +19,23 @@
     .description{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;line-height:1.6}
     .image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px}
     .image-grid.onecol{grid-template-columns:1fr}
+    .image-grid.fixed3{grid-template-columns:repeat(3,1fr)}
     .image-container{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:10px}
     .image-container img{display:block;width:100%;height:auto;border-radius:6px}
     .image-caption{margin-top:8px;text-align:center;color:#444;font-size:.9rem}
     .kbd{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f2f2f2;border:1px solid #e6e6e6;border-radius:6px;padding:1px 6px}
     .pill{display:inline-block;padding:3px 8px;border:1px solid #ddd;border-radius:999px;font-size:.85rem;background:#fff;margin-left:6px}
     pre{background:#0b0b0b;color:#eee;padding:12px;border-radius:10px;overflow:auto;font-size:.9rem}
-
-    .back-button{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 20px;color:#000;font-size:1rem;font-weight:500;cursor:pointer;transition:.2s;text-decoration:none}
-    .back-button:hover{transform:translateX(-50%) translateY(-2px);background:#f5f5f5}
-
-    .subnote{font-size:.95rem;color:#333;margin-top:12px}
-    .bul{margin-left:1rem}
-    .eq{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f7f7f7;border:1px solid #eee;border-radius:6px;padding:0 6px}
+    .muted{color:#666}
 
     /* table */
     table.tbl{width:100%;border-collapse:collapse;margin-top:12px}
     .tbl th,.tbl td{border:1px solid #e5e5e5;padding:8px;text-align:left;vertical-align:top}
     .tbl th{background:#fafafa}
     .tbl caption{caption-side:bottom;color:#555;margin-top:6px;font-size:.9rem}
-    .muted{color:#666}
+
+    .back-button{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 20px;color:#000;font-size:1rem;font-weight:500;cursor:pointer;transition:.2s;text-decoration:none}
+    .back-button:hover{transform:translateX(-50%) translateY(-2px);background:#f5f5f5}
   </style>
 </head>
 <body>
@@ -161,6 +158,48 @@
     </div>
   </div>
 
+  <!-- ================= B.1 — Harris & ANMS ================= -->
+  <div class="section" id="B1">
+    <div class="section-title"><div class="section-line"></div><h2>B.1 — Harris Corners &amp; ANMS</h2></div>
+    <div class="description">
+      I detect corners with the Harris response and then thin them with <b>Adaptive Non-Maximal Suppression (ANMS)</b>.
+      Harris finds “corner-like” intensity changes; ANMS keeps strong points while enforcing good spatial coverage.
+      Below: overlays <i>without</i> and <i>with</i> ANMS (center image per scene). Heatmaps are shown if available.
+    </div>
+    <div id="b1-scenes"></div>
+  </div>
+
+  <!-- ================= B.2 — Descriptors (placeholder) ================= -->
+  <div class="section" id="B2">
+    <div class="section-title"><div class="section-line"></div><h2>B.2 — Feature Descriptors</h2></div>
+    <div class="description">
+      For each selected point, I sample a <b>blurred 40×40 window</b> and downsample to a <b>normalized 8×8 descriptor</b>
+      (bias/gain normalization). Rotation invariance is disabled (axis-aligned patches), per the project spec.
+      <div class="subnote">Once generated, this section will show descriptor grids and example patches per scene.</div>
+    </div>
+    <div id="b2-scenes"></div>
+  </div>
+
+  <!-- ================= B.3 — Matching (placeholder) ================= -->
+  <div class="section" id="B3">
+    <div class="section-title"><div class="section-line"></div><h2>B.3 — Descriptor Matching</h2></div>
+    <div class="description">
+      I match descriptors across views using the <b>nearest/second-nearest ratio</b> (Lowe). Lines indicate putative matches
+      before robust filtering. This will populate as soon as I export the match visualizations.
+    </div>
+    <div id="b3-scenes"></div>
+  </div>
+
+  <!-- ================= B.4 — RANSAC & Autostitching (placeholder) ================= -->
+  <div class="section" id="B4">
+    <div class="section-title"><div class="section-line"></div><h2>B.4 — RANSAC &amp; Autostitching</h2></div>
+    <div class="description">
+      From the putative matches, I run <b>4-point RANSAC</b> to estimate a robust homography, then reuse the Part A warp/blend
+      code to produce an automatic mosaic. This section will show <i>manual vs. automatic</i> results side-by-side.
+    </div>
+    <div id="b4-scenes"></div>
+  </div>
+
   <!-- ================= A.4 — Mosaics & Weights ================= -->
   <div class="section" id="A4">
     <div class="section-title"><div class="section-line"></div><h2>A.4 — Blending into a Mosaic</h2></div>
@@ -213,13 +252,20 @@ const A4_BASIC  = `${OUT}/a4_mosaics`;
 const A4_W      = `${OUT}/a4_weighted`;
 const A4_LAP    = `${OUT}/a4_weighted/laplacian`;
 
+/* Part B output roots (you can change these if your scripts write elsewhere) */
+const B1        = `${OUT}/b1_harris`;           // overlays & heatmaps
+const B2        = `${OUT}/b2_desc`;             // descriptor grids/patches
+const B3        = `${OUT}/b3_match`;            // match visualizations
+const B4        = `${OUT}/b4_auto`;             // auto mosaics (RANSAC)
+
+/* Scenes used across sections */
 const SCENES = [
   { key:'ihouse',       label:'International House' },
   { key:'stadium_low',  label:'Stadium (low angle)' },
   { key:'stadium_high', label:'Stadium (high angle)' },
 ];
 
-// Add/rename rectification examples here (basename of your folder inside outputs/a3_rectify/)
+/* Rectification examples (folder names in outputs/a3_rectify/) */
 const RECTIFY_LIST = [
   { key:'hallway-picture', label:'Hallway (rectify)' },
   { key:'table-outside',   label:'Table (outdoor) — rectify' },
@@ -332,8 +378,6 @@ async function exists(url){
     }
 
     // Optional timings table if timings.json exists
-    // Schema suggestion:
-    // { "600x400": {"nn_ms": 14.2, "bil_ms": 112.7}, "800x600": {"nn_ms": 21.1, "bil_ms": 146.4} }
     try{
       const tpath = `${dir}/timings.json`;
       if(await exists(tpath)){
@@ -356,91 +400,139 @@ async function exists(url){
         box.appendChild(cap);
         wrap.appendChild(box);
       }
-    }catch(e){/* ignore */}
+    }catch(e){}
     if(wrap.children.length>1) host.appendChild(wrap);
   }
 })();
 
-/* ---------- A.4 mosaics + weight maps ---------- */
+/* ---------- B.1 — Harris & ANMS (center images) ---------- */
 (async ()=>{
-  const host = document.getElementById('a4-scenes');
-
-  const MODES = [
-    { key:'hann',   label:'Hann feather' },
-    { key:'dist',   label:'Linear distance to edges (dist)' },
-    { key:'bwdist', label:'Distance Transform (bwdist) — blurred & normalized' }
-  ];
+  const host = document.getElementById('b1-scenes');
+  if(!host) return;
 
   for(const sc of SCENES){
-    const block = el('div', {class:'section'});
-    block.appendChild(el('div', {class:'section-title'},
-      `<div class="section-line"></div><h2>${sc.label} — Mosaics &amp; Weight Maps</h2>`));
-
-    // Baseline feather (older pipeline)
-    const basicGrid = el('div', {class:'image-grid'});
-    const basicMosaic = `${A4_BASIC}/${sc.key}_mosaic.jpg`;
-    if(await exists(basicMosaic)){
-      basicGrid.appendChild(imgBox(basicMosaic, 'Mosaic (baseline feather)'));
-      block.appendChild(basicGrid);
-    }
-
-    // Variants hann/dist/bwdist (+ weights)
-    for(const mode of MODES){
-      const modeWrap = el('div', {class:'section'});
-      modeWrap.appendChild(el('div', {class:'section-title'},
-        `<div class="section-line"></div><h2>${mode.label}</h2>`));
-
-      const grid = el('div', {class:'image-grid'});
-      const m1 = `${A4_W}/${mode.key}/${sc.key}_mosaic.jpg`;
-      const m2 = `${A4_W}/${mode.key}/${sc.key}_mosaic_dist.jpg`;
-      const mosaicPath = (await exists(m1)) ? m1 : (await exists(m2) ? m2 : '');
-      if(mosaicPath) grid.appendChild(imgBox(mosaicPath, `Mosaic (${mode.key})`));
-
-      const wdir = `${A4_W}/${mode.key}/weights/${sc.key}`;
-      const W1 = `${wdir}/weight_w1_left.png`;
-      const W2 = `${wdir}/weight_w2_center.png`;
-      const W3 = `${wdir}/weight_w3_right.png`;
-      const wgrid = el('div', {class:'image-grid'});
-      if(await exists(W1)) wgrid.appendChild(imgBox(W1, `w₁ (left) — ${mode.key}`));
-      if(await exists(W2)) wgrid.appendChild(imgBox(W2, `w₂ (center) — ${mode.key}`));
-      if(await exists(W3)) wgrid.appendChild(imgBox(W3, `w₃ (right) — ${mode.key}`));
-
-      if(wgrid.children.length) modeWrap.appendChild(wgrid);
-      if(grid.children.length)  modeWrap.appendChild(grid);
-      if(modeWrap.children.length>1) block.appendChild(modeWrap);
-    }
-
-    // Laplacian results
-    const lapWrap = el('div', {class:'section'});
-    lapWrap.appendChild(el('div', {class:'section-title'},
-      `<div class="section-line"></div><h2>Laplacian Blend (multi-level)</h2>`));
-
-    const lapCandidates = [
-      `${A4_LAP}/${sc.key}_mosaic_lap5.jpg`,
-      `${A4_LAP}/${sc.key}_mosaic_lap4.jpg`,
-      `${A4_LAP}/${sc.key}_mosaic_lap3.jpg`,
-      `${A4_LAP}/${sc.key}_mosaic_lap2.jpg`,
+    // Try several filename patterns (your script may write any of these)
+    const harrisCands = [
+      `${B1}/${sc.key}_center_harris_overlay.png`,
+      `${B1}/${sc.key}_harris_overlay.png`,
+      `${B1}/${sc.key}_center_harris.png`
     ];
-    let lapMosaic = '';
-    for(const c of lapCandidates){ if(await exists(c)){ lapMosaic = c; break; } }
-    const lapGrid = el('div', {class:'image-grid'});
-    if(lapMosaic) lapGrid.appendChild(imgBox(lapMosaic, 'Mosaic (Laplacian)'));
-    const lapFeather = `${A4_LAP}/${sc.key}_mosaic_feather.jpg`;
-    if(await exists(lapFeather)) lapGrid.appendChild(imgBox(lapFeather, 'Mosaic (feather baseline)'));
-    if(lapGrid.children.length) lapWrap.appendChild(lapGrid);
+    const anmsCands = [
+      `${B1}/${sc.key}_center_anms_overlay.png`,
+      `${B1}/${sc.key}_anms_overlay.png`,
+      `${B1}/${sc.key}_center_anms.png`
+    ];
+    const heatCands = [
+      `${B1}/${sc.key}_center_harris_heat.png`,
+      `${B1}/${sc.key}_harris_heat.png`
+    ];
 
-    const wdirLap = `${A4_LAP}/weights/${sc.key}`;
-    const WL = `${wdirLap}/left_weight.png`;
-    const WC = `${wdirLap}/center_weight.png`;
-    const WR = `${wdirLap}/right_weight.png`;
-    const wLapGrid = el('div', {class:'image-grid'});
-    if(await exists(WL)) wLapGrid.appendChild(imgBox(WL, 'w₁ (left) — Lap pipeline'));
-    if(await exists(WC)) wLapGrid.appendChild(imgBox(WC, 'w₂ (center) — Lap pipeline'));
-    if(await exists(WR)) wLapGrid.appendChild(imgBox(WR, 'w₃ (right) — Lap pipeline'));
-    if(wLapGrid.children.length) lapWrap.appendChild(wLapGrid);
+    let harrisImg = '', anmsImg = '', heatImg = '';
+    for(const p of harrisCands){ if(!harrisImg && await exists(p)) harrisImg = p; }
+    for(const p of anmsCands){   if(!anmsImg   && await exists(p)) anmsImg   = p; }
+    for(const p of heatCands){   if(!heatImg   && await exists(p)) heatImg   = p; }
 
-    if(lapWrap.children.length>1) block.appendChild(lapWrap);
-    host.appendChild(block);
+    if(!harrisImg && !anmsImg && !heatImg) continue;
+
+    const wrap = el('div', {class:'section'});
+    wrap.appendChild(el('div', {class:'section-title'},
+      `<div class="section-line"></div><h2>${sc.label} — Harris &amp; ANMS (center)</h2>`));
+
+    const grid = el('div', {class:'image-grid'});
+    if(harrisImg) grid.appendChild(imgBox(harrisImg, 'Harris corners (no ANMS)'));
+    if(anmsImg)   grid.appendChild(imgBox(anmsImg,   'ANMS-selected corners'));
+    if(heatImg)   grid.appendChild(imgBox(heatImg,   'Harris heatmap (optional)'));
+    wrap.appendChild(grid);
+    host.appendChild(wrap);
+  }
+})();
+
+/* ---------- B.2 — Descriptors (placeholders; auto-fill if present) ---------- */
+(async ()=>{
+  const host = document.getElementById('b2-scenes');
+  if(!host) return;
+
+  for(const sc of SCENES){
+    const patches = `${B2}/${sc.key}_center_patches.png`;
+    const grid    = `${B2}/${sc.key}_center_descriptor_grid.png`;
+    if(!(await exists(patches)) && !(await exists(grid))) continue;
+
+    const wrap = el('div', {class:'section'});
+    wrap.appendChild(el('div', {class:'section-title'},
+      `<div class="section-line"></div><h2>${sc.label} — Descriptor Samples</h2>`));
+
+    const g = el('div', {class:'image-grid'});
+    if(await exists(patches)) g.appendChild(imgBox(patches, 'Random 40→8 patch samples'));
+    if(await exists(grid))    g.appendChild(imgBox(grid,    'Descriptor grid (normalized 8×8)'));
+    wrap.appendChild(g);
+    host.appendChild(wrap);
+  }
+})();
+
+/* ---------- B.3 — Matching (placeholders; auto-fill if present) ---------- */
+(async ()=>{
+  const host = document.getElementById('b3-scenes');
+  if(!host) return;
+
+  for(const sc of SCENES){
+    const candPairs = [
+      {file:`${B3}/${sc.key}_L_to_C_matches.png`, label:'Left ↔ Center'},
+      {file:`${B3}/${sc.key}_R_to_C_matches.png`, label:'Right ↔ Center'},
+      {file:`${B3}/${sc.key}_L_C_matches.png`,    label:'Left ↔ Center'},
+      {file:`${B3}/${sc.key}_R_C_matches.png`,    label:'Right ↔ Center'},
+    ];
+    const found = [];
+    for(const c of candPairs){ if(await exists(c.file)) found.push(c); }
+    if(!found.length) continue;
+
+    const wrap = el('div', {class:'section'});
+    wrap.appendChild(el('div', {class:'section-title'},
+      `<div class="section-line"></div><h2>${sc.label} — Descriptor Matches</h2>`));
+
+    const g = el('div', {class:'image-grid'});
+    for(const c of found){
+      g.appendChild(imgBox(c.file, c.label));
+    }
+    wrap.appendChild(g);
+    host.appendChild(wrap);
+  }
+})();
+
+/* ---------- B.4 — RANSAC & Autostitch (placeholders; auto-fill if present) ---------- */
+(async ()=>{
+  const host = document.getElementById('b4-scenes');
+  if(!host) return;
+
+  for(const sc of SCENES){
+    // Automatic mosaic (RANSAC pipeline) candidate names
+    const autoCands = [
+      `${B4}/${sc.key}_mosaic_auto.jpg`,
+      `${B4}/${sc.key}_mosaic_auto.png`
+    ];
+    let autoImg = '';
+    for(const p of autoCands){ if(!autoImg && await exists(p)) autoImg = p; }
+
+    // Manual mosaic (pick whichever exists from Part A)
+    const manCands = [
+      `${A4_W}/bwdist/${sc.key}_mosaic_bwdist.jpg`,
+      `${A4_W}/dist/${sc.key}_mosaic_dist.jpg`,
+      `${A4_W}/hann/${sc.key}_mosaic_hann.jpg`,
+      `${A4_BASIC}/${sc.key}_mosaic.jpg`
+    ];
+    let manImg = '';
+    for(const p of manCands){ if(!manImg && await exists(p)) manImg = p; }
+
+    if(!autoImg && !manImg) continue;
+
+    const wrap = el('div', {class:'section'});
+    wrap.appendChild(el('div', {class:'section-title'},
+      `<div class="section-line"></div><h2>${sc.label} — Manual vs. Automatic</h2>`));
+
+    const g = el('div', {class:'image-grid'});
+    if(manImg)  g.appendChild(imgBox(manImg,  'Manual pipeline (Part A)'));
+    if(autoImg) g.appendChild(imgBox(autoImg, 'Automatic (RANSAC-based)'));
+    wrap.appendChild(g);
+    host.appendChild(wrap);
   }
 })();
 </script>
