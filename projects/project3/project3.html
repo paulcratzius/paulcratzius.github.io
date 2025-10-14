@@ -353,25 +353,101 @@
   </div>
 
   <!-- International House — 15 best matches -->
-<div class="section" id="B3-ihouse-k15">
-  <div class="section-title">
-    <div class="section-line"></div><h2>International House — top-15 matches</h2>
+  <div class="section" id="B3-ihouse-k15">
+    <div class="section-title">
+      <div class="section-line"></div><h2>International House — top-15 matches</h2>
+    </div>
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="./outputs/b3_matches/ihouse_LC_matches_k15.png"
+             onerror="this.onerror=null;this.src='./outputs/b3_matches/ihouse_L_to_C_matches_top15.png';"
+             alt="International House Left↔Center top-15 matches">
+        <div class="image-caption">Left ↔ Center — top-15 matches</div>
+      </div>
+      <div class="image-container">
+        <img src="./outputs/b3_matches/ihouse_RC_matches_k15.png"
+             onerror="this.onerror=null;this.src='./outputs/b3_matches/ihouse_R_to_C_matches_top15.png';"
+             alt="International House Right↔Center top-15 matches">
+        <div class="image-caption">Right ↔ Center — top-15 matches</div>
+      </div>
+    </div>
   </div>
-  <div class="image-grid">
-    <div class="image-container">
-      <img src="./outputs/b3_matches/ihouse_LC_matches_k15.png"
-           onerror="this.onerror=null;this.src='./outputs/b3_matches/ihouse_L_to_C_matches_top15.png';"
-           alt="International House Left↔Center top-15 matches">
-      <div class="image-caption">Left ↔ Center — top-15 matches</div>
+
+  <!-- ============== B.4 — RANSAC Homography & Auto-Mosaics ============== -->
+  <div class="section" id="B4">
+    <div class="section-title"><div class="section-line"></div><h2>B.4 — RANSAC for Robust Homography &amp; Autostitching</h2></div>
+    <div class="description">
+      This stage turns the tentative matches from B.3 into a <b>geometrically consistent</b> alignment. I reuse the exact
+      Harris→ANMS→(40→8) descriptor pipeline and the <i>same</i> match files saved in <span class="kbd">./outputs/b3_matches/*.npz</span>.
+      To make the estimate stable and reduce the chance of drift from spurious correspondences, I cap the data to the
+      <b>top-15 lowest ratio</b> matches per pair (Left↔Center and Right↔Center). A 4-point <b>RANSAC</b> then repeatedly samples
+      four correspondences, computes a homography with normalized DLT, and counts inliers using the <b>reprojection error</b>
+      threshold (≈3&nbsp;px). The best consensus set is used to refit \(H\) from <i>all</i> inliers. Finally, I warp all three
+      images into a shared canvas and blend them using the same Part-A compositor (distance-to-boundary weights and Laplacian
+      pyramid when requested).  
+      <br/><br/>
+      In the figures below, <b>“all”</b> shows every kept B.3 match (many lines, including obvious outliers), while
+      <b>“inliers”</b> shows the subset that survived RANSAC. Notice how diagonally crossing, obviously wrong lines disappear.
+      The <b>Auto mosaic</b> is produced entirely from these automatic correspondences; <b>Manual vs Auto</b> juxtaposes this result
+      with the Part-A manual mosaic for a fair side-by-side comparison.
     </div>
-    <div class="image-container">
-      <img src="./outputs/b3_matches/ihouse_RC_matches_k15.png"
-           onerror="this.onerror=null;this.src='./outputs/b3_matches/ihouse_R_to_C_matches_top15.png';"
-           alt="International House Right↔Center top-15 matches">
-      <div class="image-caption">Right ↔ Center — top-15 matches</div>
+    <div id="b4-scenes"></div>
+  </div>
+
+  <!-- ============== B.4 — Summary, Math & Key Takeaways ============== -->
+<div class="section" id="B4-summary">
+  <div class="section-title"><div class="section-line"></div><h2>B.4 — Summary &amp; Math</h2></div>
+  <div class="description">
+    <p><b>Data reuse:</b> I reuse the B.1/B.2/B.3 pipeline verbatim: Harris response R = det(M) − k·(trace(M))<sup>2</sup> with
+    Sobel gradients; ANMS for spatial spread; 40×40 patches blurred and downsampled to 8×8; and descriptor bias/gain
+    normalization. Matching uses SSD in the 64-D space and Lowe’s ratio test. For RANSAC I restrict to the <b>top-15</b>
+    lowest-ratio pairs per direction.</p>
+
+    <p><b>Homography (normalized DLT):</b> For point pairs (xᵢ, yᵢ) ↔ (x′ᵢ, y′ᵢ) I estimate a 3×3 projective transform H
+    (with H<sub>33</sub> = 1). I first normalize both point sets with similarity transforms T<sub>1</sub> and T<sub>2</sub>
+    (zero mean, average distance √2). Then I build the homogeneous system A·h = 0 (two rows per pair) and solve by SVD; the last
+    right singular vector gives Ĥ. Finally I denormalize with H = T<sub>2</sub><sup>−1</sup> · Ĥ · T<sub>1</sub>.</p>
+
+    <div class="eq">
+      Rows of A for (xᵢ, yᵢ) ↦ (x′ᵢ, y′ᵢ):<br/>
+      [ 0  0  0   −xᵢ  −yᵢ  −1    y′ᵢ·xᵢ   y′ᵢ·yᵢ   y′ᵢ ]<br/>
+      [ xᵢ  yᵢ  1    0    0    0  −x′ᵢ·xᵢ  −x′ᵢ·yᵢ  −x′ᵢ ]
     </div>
+
+    <p><b>RANSAC:</b> Repeat for N iterations: sample 4 pairs, compute H (DLT), and mark a correspondence as an inlier if the
+    reprojection error εᵢ = ‖ π( H · [xᵢ, yᵢ, 1]ᵀ ) − [x′ᵢ, y′ᵢ]ᵀ ‖<sub>2</sub> with π([u, v, w]ᵀ) = [u/w, v/w]ᵀ is &lt; τ
+    (here τ ≈ 3 px). Keep the model with the largest consensus, then refit H using all inliers.</p>
+
+    <p><b>Canvas &amp; warping:</b> Transform the four corners of each image, take the global axis-aligned bounding box, and add a
+    translation T so all coordinates are non-negative. Render every image into the common canvas using inverse mapping
+    (bilinear sampling) and binary validity masks.</p>
+
+    <p><b>Blending:</b> I reuse Part-A exactly. Each warped mask m yields a distance-to-boundary weight w = DT(m) (optionally
+    blurred and shaped by an exponent γ), normalized across images per pixel. For the Laplacian variant, I build Laplacian stacks
+    L<sup>A</sup><sub>k</sub>, L<sup>B</sup><sub>k</sub> and blend bands with Gaussian-blurred masks G<sub>k</sub>:</p>
+    <div class="eq">O = Σ<sub>k</sub> ( G<sub>k</sub> · L<sup>A</sup><sub>k</sub> + (1 − G<sub>k</sub>) · L<sup>B</sup><sub>k</sub> ).</div>
+    <p>This hides both thin texture seams and slow illumination drifts.</p>
   </div>
 </div>
+
+
+  <div class="section" id="B4-takeaways">
+    <div class="section-title"><div class="section-line"></div><h2>B.4 — Key Takeaways</h2></div>
+    <div class="description">
+      <ul class="bul">
+        <li><b>Less is more for geometry:</b> using only the top-15 most distinctive matches per pair dramatically reduces
+            degenerate samples in RANSAC and yields more stable homographies than dumping hundreds of weak, ambiguous pairs.</li>
+        <li><b>RANSAC explains away diagonal “nonsense” lines:</b> outliers that cut across unrelated structures fail the geometric
+            test and are excluded; the inlier set aligns to a single plane model.</li>
+        <li><b>Reuse beats re-invention:</b> carrying over Harris+ANMS, 8×8 descriptors, and the Part-A blender keeps the system
+            consistent and makes debugging easier. Only the estimator (RANSAC + normalized DLT) is new.</li>
+        <li><b>Masks are currency:</b> the same validity masks used for blending are also helpful for visual sanity checks and for
+            diagnosing empty regions after warping.</li>
+        <li><b>Photometric vs geometric:</b> good blending cannot rescue a bad \(\mathbf{H}\); fix geometry first, then hide seams
+            with distance weights or a Laplacian pyramid.</li>
+      </ul>
+    </div>
+  </div>
 
   <!-- ==================== /PART B ==================== -->
 
@@ -388,7 +464,7 @@ const A2        = `${OUT}/a2`;
 const A3R       = `${OUT}/a3_rectify`;          // rectification outputs
 const A4_BASIC  = `${OUT}/a4_mosaics`;
 const A4_W      = `${OUT}/a4_weighted`;
-const A4_LAP    = `${OUT}/a4_weighted/laplacian`;
+const A4_LAP    = `${A4_W}/laplacian`;
 
 const SCENES = [
   { key:'ihouse',       label:'International House' },
@@ -508,9 +584,6 @@ async function exists(url){
       }
     }
 
-    // Optional timings table if timings.json exists
-    // Schema suggestion:
-    // { "600x400": {"nn_ms": 14.2, "bil_ms": 112.7}, "800x600": {"nn_ms": 21.1, "bil_ms": 146.4} }
     try{
       const tpath = `${dir}/timings.json`;
       if(await exists(tpath)){
@@ -533,7 +606,7 @@ async function exists(url){
         box.appendChild(cap);
         wrap.appendChild(box);
       }
-    }catch(e){/* ignore */}
+    }catch(e){}
     if(wrap.children.length>1) host.appendChild(wrap);
   }
 })();
@@ -553,7 +626,6 @@ async function exists(url){
     block.appendChild(el('div', {class:'section-title'},
       `<div class="section-line"></div><h2>${sc.label} — Mosaics &amp; Weight Maps</h2>`));
 
-    // Baseline feather (older pipeline)
     const basicGrid = el('div', {class:'image-grid'});
     const basicMosaic = `${A4_BASIC}/${sc.key}_mosaic.jpg`;
     if(await exists(basicMosaic)){
@@ -561,8 +633,13 @@ async function exists(url){
       block.appendChild(basicGrid);
     }
 
-    // Variants hann/dist/bwdist (+ weights)
-    for(const mode of MODES){
+    const modes = [
+      { key:'hann',   label:'Hann feather' },
+      { key:'dist',   label:'Linear distance to edges (dist)' },
+      { key:'bwdist', label:'Distance Transform (bwdist)' }
+    ];
+
+    for(const mode of modes){
       const modeWrap = el('div', {class:'section'});
       modeWrap.appendChild(el('div', {class:'section-title'},
         `<div class="section-line"></div><h2>${mode.label}</h2>`));
@@ -587,7 +664,6 @@ async function exists(url){
       if(modeWrap.children.length>1) block.appendChild(modeWrap);
     }
 
-    // Laplacian results
     const lapWrap = el('div', {class:'section'});
     lapWrap.appendChild(el('div', {class:'section-title'},
       `<div class="section-line"></div><h2>Laplacian Blend (multi-level)</h2>`));
@@ -629,7 +705,6 @@ async function exists(url){
     if(!host) return;
     const B3 = `${OUT}/b3_matches`;
 
-    // Helper: try stems with several extensions and return the first that exists
     async function firstExisting(stems, exts=['.png','.jpg','.jpeg']){
       for(const s of stems){
         for(const e of exts){
@@ -654,16 +729,12 @@ async function exists(url){
       const grid = el('div', {class:'image-grid onecol'});
 
       for(const p of PAIRS){
-        // Build candidate stems for many common file name patterns
         const stems = [];
-        // scene_LC_matches[_variant]
         VARIANTS.forEach(v => stems.push(`${B3}/${sc.key}_${p.key}_matches${v}`));
-        // scene_L_to_C_matches etc.
         for(const alt of p.altKeys){
           VARIANTS.forEach(v => stems.push(`${B3}/${sc.key}_${alt}_matches${v}`));
           VARIANTS.forEach(v => stems.push(`${B3}/${sc.key}_${alt}${v}`));
         }
-        // generic "matches_scene_pair"
         VARIANTS.forEach(v => stems.push(`${B3}/matches_${sc.key}_${p.key}${v}`));
 
         const found = await firstExisting(stems);
@@ -671,6 +742,57 @@ async function exists(url){
           grid.appendChild(imgBox(found, `${p.label} — matches visualization`));
         }
       }
+
+      if(grid.children.length){
+        wrap.appendChild(grid);
+        host.appendChild(wrap);
+      }
+    }
+  })();
+</script>
+
+<!-- ===== B.4 dynamic loader (reads ./outputs/b4_autostitch/*) ===== -->
+<script>
+  (async ()=>{
+    const host = document.getElementById('b4-scenes');
+    if(!host) return;
+    const B4 = `${OUT}/b4_autostitch`;
+
+    async function firstExisting(stems, exts=['.jpg','.png','.jpeg']){
+      for(const s of stems){
+        for(const e of exts){
+          const cand = `${s}${e}`;
+          if(await exists(cand)) return cand;
+        }
+      }
+      return '';
+    }
+
+    for(const sc of SCENES){
+      const wrap = el('div', {class:'section'});
+      wrap.appendChild(el('div', {class:'section-title'},
+        `<div class="section-line"></div><h2>${sc.label} — RANSAC &amp; Auto Mosaic</h2>`));
+
+      const grid = el('div', {class:'image-grid'});
+
+      // LC all / inliers
+      const lc_all = await firstExisting([`${B4}/${sc.key}_LC_matches_all`]);
+      const lc_in  = await firstExisting([`${B4}/${sc.key}_LC_matches_inliers`]);
+
+      // RC all / inliers
+      const rc_all = await firstExisting([`${B4}/${sc.key}_RC_matches_all`]);
+      const rc_in  = await firstExisting([`${B4}/${sc.key}_RC_matches_inliers`]);
+
+      // mosaics
+      const auto_mosaic = await firstExisting([`${B4}/${sc.key}_auto_mosaic`, `${B4}/${sc.key}_auto_mosaic_laplacian`]);
+      const manual_vs   = await firstExisting([`${B4}/${sc.key}_manual_vs_auto`]);
+
+      if(lc_all) grid.appendChild(imgBox(lc_all, 'Left↔Center — all kept matches'));
+      if(lc_in)  grid.appendChild(imgBox(lc_in,  'Left↔Center — RANSAC inliers'));
+      if(rc_all) grid.appendChild(imgBox(rc_all, 'Right↔Center — all kept matches'));
+      if(rc_in)  grid.appendChild(imgBox(rc_in,  'Right↔Center — RANSAC inliers'));
+      if(auto_mosaic) grid.appendChild(imgBox(auto_mosaic, 'Auto mosaic (from RANSAC homographies)'));
+      if(manual_vs)   grid.appendChild(imgBox(manual_vs,   'Manual vs Auto (side-by-side)'));
 
       if(grid.children.length){
         wrap.appendChild(grid);

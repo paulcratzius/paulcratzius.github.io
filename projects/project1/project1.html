@@ -82,48 +82,77 @@
       </div>
     </div>
 
-    <!-- Mathematical details: SSD, NCC, Pyramid, Edges -->
-    <div class="section">
-      <div class="section-title"><div class="section-line"></div><h2>Mathematical Details</h2></div>
-      <div class="description math-note">
-        <p><b>Notation.</b> Let $B$ be the blue reference and $T$ a target channel (G or R).
-        A shift $(d_y,d_x)$ aligns $T$ to $B$ on their overlapping window $\Omega(d_y,d_x)$.</p>
+    <!-- ============== B.4 — Autostitching: Summary & Math (MathJax/LaTeX) ============== -->
+<div class="section" id="B4-summary">
+  <div class="section-title"><div class="section-line"></div><h2>B.4 — Autostitching: Summary &amp; Math</h2></div>
+  <div class="description math-note">
+    <p><b>Data reuse.</b> I reuse the B.1/B.2/B.3 pipeline verbatim:
+      Harris response $R=\det(\mathbf{M})-k\,\mathrm{tr}(\mathbf{M})^2$ (with Sobel gradients),
+      ANMS for spatial spread, 40&times;40 patches blurred and downsampled to $8\times8$,
+      bias/gain normalization of descriptors, SSD matching in $\mathbb{R}^{64}$, and Lowe’s ratio test.
+      For RANSAC I restrict to the <b>top-15</b> lowest-ratio pairs per direction.</p>
 
-        <p><b>SSD (L2) alignment.</b> We minimize the squared error over the overlap:
-        $ (d_y^{*}, d_x^{*}) = \arg\min_{d_y,d_x} \sum_{(y,x)\in\Omega} [B(y,x)-T(y+d_y,x+d_x)]^2. $
-        Expanding shows sensitivity to global brightness/contrast. If we first subtract means and optionally scale,
-        SSD becomes more stable, but still depends on intensity consistency.</p>
+    <p><b>Homography (normalized DLT).</b>
+      For point pairs $(x_i,y_i)\leftrightarrow(x'_i,y'_i)$, estimate a $3\times3$ projective transform
+      $\mathbf{H}$ (with $H_{33}=1$). First normalize both point sets with similarity transforms
+      $\mathbf{T}_1,\mathbf{T}_2$ (zero mean, average distance $\sqrt{2}$), then build the homogeneous system
+      $\mathbf{A}\mathbf{h}=0$ (two rows per pair), solve by SVD, and denormalize
+      $\mathbf{H}=\mathbf{T}_2^{-1}\,\hat{\mathbf{H}}\,\mathbf{T}_1$.</p>
 
-        <p><b>NCC (cosine similarity).</b> With zero-mean patches
-        $\tilde B = B-\mu_B,\ \tilde T = T-\mu_T$, the (zero-mean) normalized cross-correlation is
-        $$ \mathrm{NCC}(d_y,d_x)=
-           \frac{\sum_{\Omega} \tilde B(y,x)\,\tilde T(y+d_y,x+d_x)}
-                {\sqrt{\sum_{\Omega} \tilde B^2}\;\sqrt{\sum_{\Omega} \tilde T^2}}. $$
-        $ (d_y^{*}, d_x^{*}) = \arg\max_{d_y,d_x} \mathrm{NCC}(d_y,d_x). $
-        This is exactly the cosine of the angle between the vectorized patches, thus invariant to affine changes of intensity
-        ($aT+b$), explaining its robustness vs. SSD on scenes with channel-dependent brightness.</p>
-
-        <p><b>Coarse-to-fine pyramid.</b> Build levels $k=L,\dots,0$ by downsampling with factor ~2:
-        $B_k=\mathrm{down}(B_{k+1}),\ T_k=\mathrm{down}(T_{k+1})$.
-        At the coarsest $L$, find $(d_y^L,d_x^L)$ with a small search window.
-        Propagate to the finer level by doubling and locally refining:
-        $$ (d_y^{k},d_x^{k})=\arg\max_{|\\Delta|\le r}
-            \ \mathcal{S}\big(B_k,\ T_k(\cdot+d^{k+1}\!\times2 + \\Delta)\big),\quad k=L-1,\dots,0, $$
-        where $\mathcal{S}$ is NCC (or negative SSD). A full-res displacement $D$ shrinks to $D/2^L$ at level $L$,
-        so a tiny search window per level still covers large motions overall.</p>
-
-        <p><b>Edge feature used for SSD/NCC.</b> Instead of raw intensity we match gradient magnitude
-        $$ g_x=\frac{T(\cdot+1)-T(\cdot-1)}{2},\quad g_y=\frac{T^\uparrow-T^\downarrow}{2},\quad
-           M=\sqrt{g_x^2+g_y^2}. $$
-        (We also support 3×3 Prewitt.) Using $M$ suppresses brightness bias and emphasizes structural alignment; we
-        standardize $M$ (zero-mean, unit-std) before matching.</p>
-
-        <p><b>Phase correlation (for reference).</b> In the frequency domain, the cross-power spectrum
-        $$ C=\frac{\mathcal{F}(B)\,\overline{\mathcal{F}(T)}}{|\mathcal{F}(B)\,\overline{\mathcal{F}(T)}|} $$
-        has an inverse FFT whose peak location gives $(d_y,d_x)$. It’s $O(N\log N)$ and invariant to uniform brightness
-        and gain, making it an excellent coarse initializer.</p>
-      </div>
+    <div class="eq">
+      $$
+      \mathbf{A}_i =
+      \begin{bmatrix}
+        0 & 0 & 0 & -x_i & -y_i & -1 & y'_i x_i & y'_i y_i & y'_i \\
+        x_i & y_i & 1 & 0 & 0 & 0 & -x'_i x_i & -x'_i y_i & -x'_i
+      \end{bmatrix},\qquad
+      \mathbf{A}\mathbf{h}=0,\quad
+      \hat{\mathbf{H}}=\mathrm{reshape}\big(\mathbf{v}_{\min}\big).
+      $$
     </div>
+
+    <p><b>RANSAC.</b>
+      Repeat for $N$ iterations: sample 4 pairs, compute $\mathbf{H}$ (DLT), and mark a correspondence as inlier if the
+      reprojection error
+      $$
+      \varepsilon_i \;=\; \left\|\, \pi\!\left(\mathbf{H}\,[x_i,y_i,1]^T\right) - [x'_i,y'_i]^T \right\|_2,
+      \qquad \pi([u,v,w]^T)=[u/w,\;v/w]^T,
+      $$
+      is $<\tau$ (here $\tau\approx3$ px). Keep the model with the largest consensus, then refit $\mathbf{H}$ using all inliers.</p>
+
+    <p><b>Canvas &amp; warping.</b>
+      Transform the four corners of each image, take the global AABB, and add a translation $\mathbf{T}$
+      so all coordinates are non-negative. Render every image into the common canvas by inverse mapping
+      (bilinear sampling) while carrying binary validity masks.</p>
+
+    <p><b>Blending (reuse Part A).</b>
+      Each warped mask $m$ yields a distance-to-boundary weight $w=\mathrm{DT}(m)$ (optionally blurred and shaped as $w^\gamma$),
+      then weights are normalized across images per pixel:
+      $$
+      \tilde w_j \;=\; \frac{w_j}{\sum_k w_k + \varepsilon}.
+      $$
+      For the Laplacian variant, build stacks $L_k^{(A)},L_k^{(B)}$ and Gaussian-blurred masks $G_k$, then blend per band
+      $$
+      O \;=\; \sum_k \Big( G_k \cdot L_k^{(A)} \;+\; (1-G_k)\cdot L_k^{(B)} \Big).
+      $$
+      This hides both thin texture seams and slow illumination drifts.</p>
+  </div>
+</div>
+
+<!-- ============== B.4 — Key Takeaways ============== -->
+<div class="section" id="B4-takeaways">
+  <div class="section-title"><div class="section-line"></div><h2>B.4 — Key Takeaways</h2></div>
+  <div class="description math-note">
+    <p>
+      Robust autostitching needs both <em>distinctive</em> matches (Lowe ratio on normalized 8×8 descriptors) and
+      <em>geometric consensus</em> (RANSAC with a tight reprojection threshold). Normalized DLT is crucial for numerical
+      stability, and per-pixel weight normalization prevents brightness bias in overlaps.
+      Multi-scale blending allocates high-frequency detail and low-frequency exposure separately, which is why
+      $\,\sum_k\,$ bandwise mixing with $G_k$ produces seam-free results even when alignment is not perfect.
+    </p>
+  </div>
+</div>
+
 
     <!-- Implementation Details -->
     <div class="section">
