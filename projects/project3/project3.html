@@ -536,22 +536,46 @@ async function exists(url){
 })();
 </script>
 
-<!-- NEW: resolves Part-2 images relative to PAGE_BASE -->
 <script>
-  (function(){
-    var base = (typeof PAGE_BASE !== 'undefined') ? PAGE_BASE : '.';
-    document.querySelectorAll('img[data-b1]').forEach(function(im){
-      var p = im.getAttribute('data-b1');
-      if(!p) return;
-      if(!/^https?:\/\//.test(p)) {
-        im.src = base + '/' + p.replace(/^\/+/, '');
-      } else {
-        im.src = p;
+  (async function () {
+    // nutzt OUT = `${PAGE_BASE}/outputs` aus dem oberen Script
+    async function probe(urls){
+      for (const u of urls){
+        try { const r = await fetch(u, { method: 'HEAD', cache: 'no-store' });
+              if (r.ok) return u; } catch(e){}
       }
-      if(!im.hasAttribute('loading')) im.setAttribute('loading','lazy');
-    });
+      return '';
+    }
+
+    const baseOut = (typeof OUT !== 'undefined') ? OUT : ((typeof PAGE_BASE !== 'undefined') ? (PAGE_BASE + '/outputs') : './outputs');
+
+    const extFallbacks = ['.png', '.jpg', '.jpeg'];
+    const imgs = document.querySelectorAll('img[data-b1]');
+
+    for (const im of imgs) {
+      const rel = im.getAttribute('data-b1'); // z.B. outputs/b1_features/ihouse_center/ihouse_center_harris_heatmap.png
+      if (!rel) continue;
+
+      // rel kann bereits mit "outputs/..." beginnen – wir machen ihn relativ zu OUT
+      const clean = rel.replace(/^\/+/, '').replace(/^outputs\//, ''); // nur den Teil NACH 'outputs/'
+      // Dateiname + evtl. falsche Endung -> Fallbacks testen
+      const m = clean.match(/^(.*?)(\.[a-zA-Z0-9]+)$/);
+      const stem = m ? m[1] : clean;
+      const candidates = extFallbacks.map(ext => `${baseOut}/${stem}${ext}`);
+
+      const ok = await probe(candidates);
+      if (ok) {
+        im.src = ok;
+        if (!im.hasAttribute('loading')) im.setAttribute('loading','lazy');
+      } else {
+        // Optional: im Alt-Text vermerken, damit man den fehlenden Pfad im UI/Console sieht
+        im.alt = (im.alt || '') + ' (missing: ' + candidates.join(' | ') + ')';
+        console.warn('Part-2 image not found for', im, 'tried:', candidates);
+      }
+    }
   })();
 </script>
+
 
 <script>
   function eagerLoadAllImages(){
