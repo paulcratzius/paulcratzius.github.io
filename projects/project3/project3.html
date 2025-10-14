@@ -199,62 +199,112 @@
     </div>
   </div>
 
-  <!-- ==================== PART 2 ==================== -->
-  <div class="section" id="PART2">
-    <div class="section-title"><div class="section-line"></div><h2>Part 2 — Feature Matching for Autostitching</h2></div>
-    <div class="description">
-      In Part 2 I automate the correspondence step. The pipeline follows Brown–Szeliski–Winder (MOPS) in a simplified form:
-      <ol class="bul">
-        <li><b>B.1 Harris + ANMS:</b> detect many candidate corners (Harris) and thin them using <i>Adaptive Non-Maximal
-            Suppression</i> so points are strong <i>and</i> well distributed.</li>
-        <li><b>B.2 Descriptors (axis-aligned):</b> for each selected point, sample a blurred 40×40 window and downsample to an
-            8×8 patch; bias/gain-normalize to be robust to brightness/contrast.</li>
-        <li><b>B.3 Matching:</b> for each feature, find its nearest and second-nearest descriptor in the other image and keep the
-            match if the <i>ratio</i> NN1/NN2 is small (Lowe’s test) → high distinctiveness.</li>
-        <li><b>B.4 RANSAC:</b> repeatedly fit a homography from 4 random matches, score by inliers under a pixel threshold, and
-            keep the best model; then stitch with the Part-1 warping/blending code.</li>
-      </ol>
-      Below are the results for B.1. Sections for B.2–B.4 are placeholders that will be filled as I implement each step.
-    </div>
+  <!-- ================= PART 2 — Feature Matching for Autostitching ================= -->
+<div class="section" id="part2">
+  <div class="section-title"><div class="section-line"></div><h2>Part 2 — Feature Matching for Autostitching</h2></div>
+  <div class="description">
+    In Part 2 I automate the correspondence step following Brown–Szeliski–Winder (MOPS) in a simplified form:
+    <ol class="bul" style="margin-left:1.25rem">
+      <li><b>B.1 Harris + ANMS:</b> detect many candidate corners (Harris) and thin them using <i>Adaptive Non-Maximal Suppression</i> so points are strong <i>and</i> well distributed.</li>
+      <li><b>B.2 Descriptors (axis-aligned):</b> for each selected point, sample a blurred 40×40 window and downsample to an 8×8 patch; bias/gain-normalize to be robust to brightness/contrast.</li>
+      <li><b>B.3 Matching:</b> for each feature, find its nearest and second-nearest descriptor in the other image and keep the match if the ratio NN1/NN2 is small (Lowe’s test).</li>
+      <li><b>B.4 RANSAC:</b> repeatedly fit a homography from 4 random matches, score by inliers under a pixel threshold, keep the best model, then stitch with the Part-1 warping/blending code.</li>
+    </ol>
+    Below are the results for <b>B.1</b>. Sections B.2–B.4 are placeholders that I’ll fill as I implement each step.
+  </div>
+</div>
 
-    <!-- B.1 results -->
-    <div class="section" id="B1">
-      <div class="section-title"><div class="section-line"></div><h2>B.1 — Harris Corners &amp; ANMS (Center images)</h2></div>
-      <div class="description">
-        For each scene I show: (i) Harris response heatmap, (ii) all local maxima overlaid, and (iii) the ANMS-filtered set
-        (here \(N=800\)). Harris finds many corners, while ANMS spreads them so we have coverage across the image.
+<!-- ================= B.1 — Harris Corners & ANMS (center images) ================= -->
+<div class="section" id="b1">
+  <div class="section-title"><div class="section-line"></div><h2>B.1 — Harris Corners &amp; ANMS (Center images)</h2></div>
+  <div class="description">
+    For each scene I show: (i) Harris response heatmap, (ii) all local maxima overlaid, and (iii) the ANMS-filtered set (here N≈800).
+    Harris finds many corners, while ANMS spreads them so we have coverage across the image.
+  </div>
+
+  <!-- International House — center -->
+  <div class="section">
+    <div class="section-title"><div class="section-line"></div><h2>International House — center</h2></div>
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="./outputs/b1_features/ihouse_center/ihouse_center_harris_heatmap.png" alt="ihouse harris heatmap"/>
+        <div class="image-caption">Harris response (heatmap)</div>
       </div>
-      <div id="b1-scenes"></div>
-    </div>
-
-    <!-- B.2 placeholder -->
-    <div class="section" id="B2">
-      <div class="section-title"><div class="section-line"></div><h2>B.2 — Feature Descriptors (coming next)</h2></div>
-      <div class="description">
-        Plan: extract 8×8 normalized patches from 40×40 windows around ANMS points (no rotation invariance). I will visualize
-        a grid of sampled patches and a few side-by-side crops to show robustness to illumination.
+      <div class="image-container">
+        <img src="./outputs/b1_features/ihouse_center/ihouse_center_harris_all.png" alt="ihouse all harris"/>
+        <div class="image-caption">All Harris peaks (overlay)</div>
       </div>
-    </div>
-
-    <!-- B.3 placeholder -->
-    <div class="section" id="B3">
-      <div class="section-title"><div class="section-line"></div><h2>B.3 — Descriptor Matching (coming next)</h2></div>
-      <div class="description">
-        Plan: implement L2 matching with Lowe-ratio filtering and display match lines between pairs (left↔center, right↔center).
-        I’ll include histograms of match distances and the chosen ratio threshold.
-      </div>
-    </div>
-
-    <!-- B.4 placeholder -->
-    <div class="section" id="B4">
-      <div class="section-title"><div class="section-line"></div><h2>B.4 — RANSAC Homography &amp; Autostitch (coming next)</h2></div>
-      <div class="description">
-        Plan: 4-point RANSAC with a 1–3 px inlier threshold, then re-estimate \(H\) from all inliers and pass the result into my
-        warping/blending code from Part 1. I will show manual vs. automatic mosaics side by side for at least three panoramas.
+      <div class="image-container">
+        <img src="./outputs/b1_features/ihouse_center/ihouse_center_anms_800.png" alt="ihouse anms"/>
+        <div class="image-caption">ANMS selection (N=800)</div>
       </div>
     </div>
   </div>
-  <!-- ================ END PART 2 =================== -->
+
+  <!-- Stadium (low angle) — center -->
+  <div class="section">
+    <div class="section-title"><div class="section-line"></div><h2>Stadium (low angle) — center</h2></div>
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="./outputs/b1_features/stadium_low_center/stadium_low_center_harris_heatmap.png" alt="stadium low heatmap"/>
+        <div class="image-caption">Harris response (heatmap)</div>
+      </div>
+      <div class="image-container">
+        <img src="./outputs/b1_features/stadium_low_center/stadium_low_center_harris_all.png" alt="stadium low all harris"/>
+        <div class="image-caption">All Harris peaks (overlay)</div>
+      </div>
+      <div class="image-container">
+        <img src="./outputs/b1_features/stadium_low_center/stadium_low_center_anms_800.png" alt="stadium low anms"/>
+        <div class="image-caption">ANMS selection (N=800)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stadium (high angle) — center -->
+  <div class="section">
+    <div class="section-title"><div class="section-line"></div><h2>Stadium (high angle) — center</h2></div>
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="./outputs/b1_features/stadium_high_center/stadium_high_center_harris_heatmap.png" alt="stadium high heatmap"/>
+        <div class="image-caption">Harris response (heatmap)</div>
+      </div>
+      <div class="image-container">
+        <img src="./outputs/b1_features/stadium_high_center/stadium_high_center_harris_all.png" alt="stadium high all harris"/>
+        <div class="image-caption">All Harris peaks (overlay)</div>
+      </div>
+      <div class="image-container">
+        <img src="./outputs/b1_features/stadium_high_center/stadium_high_center_anms_800.png" alt="stadium high anms"/>
+        <div class="image-caption">ANMS selection (N=800)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= B.2 — B.4 placeholders ================= -->
+<div class="section" id="b2">
+  <div class="section-title"><div class="section-line"></div><h2>B.2 — Feature Descriptors (coming next)</h2></div>
+  <div class="description">
+    Plan: extract 8×8 normalized patches from 40×40 windows around ANMS points (no rotation invariance). I will visualize a grid
+    of sampled patches and a few side-by-side crops to show robustness to illumination.
+  </div>
+</div>
+
+<div class="section" id="b3">
+  <div class="section-title"><div class="section-line"></div><h2>B.3 — Descriptor Matching (coming next)</h2></div>
+  <div class="description">
+    Plan: pair features between L/C and R/C using SSD in descriptor space and Lowe’s NN/2NN ratio test. I will render match lines
+    and report the kept ratio.
+  </div>
+</div>
+
+<div class="section" id="b4">
+  <div class="section-title"><div class="section-line"></div><h2>B.4 — RANSAC Homography &amp; Auto-Mosaics (coming next)</h2></div>
+  <div class="description">
+    Plan: 4-point RANSAC on the matches, score by inliers &lt;= ε pixels, keep the best H, then pass the result into my Part-1
+    warping/blending code. I’ll show side-by-side: manual vs automatic stitching for ≥3 scenes.
+  </div>
+</div>
+
 
 </div>
 
@@ -494,52 +544,6 @@ async function exists(url){
     if(lapWrap.children.length>1) block.appendChild(lapWrap);
     host.appendChild(block);
   }
-})();
-</script>
-
-<!-- ============== PART 2: B.1 loader (fixed: no HEAD) ============== -->
-<script>
-const B1_DIR = `${OUT}/b1_features`;
-const B1_SCENES = [
-  { sub:'ihouse_center',       label:'International House — center' },
-  { sub:'stadium_low_center',  label:'Stadium (low angle) — center' },
-  { sub:'stadium_high_center', label:'Stadium (high angle) — center' },
-];
-
-// helper: create box and remove if the image 404s
-function imgBoxTry(src, caption){
-  const box = document.createElement('div'); box.className='image-container';
-  const im  = document.createElement('img'); im.src = src; im.loading = 'lazy';
-  im.addEventListener('error', ()=> box.remove());
-  const cap = document.createElement('div'); cap.className='image-caption'; cap.textContent = caption || '';
-  box.appendChild(im); box.appendChild(cap);
-  return box;
-}
-
-(function(){
-  const host = document.getElementById('b1-scenes');
-  if(!host) return;
-
-  for(const s of B1_SCENES){
-    const base = `${B1_DIR}/${s.sub}/${s.sub}`;
-    const heat = `${base}_harris_heatmap.png`;
-    const all  = `${base}_harris_all.png`;
-    const anms = `${base}_anms_800.png`;
-
-    const wrap = document.createElement('div'); wrap.className = 'section';
-    wrap.innerHTML = `<div class="section-title"><div class="section-line"></div><h2>${s.label}</h2></div>`;
-
-    const grid = document.createElement('div'); grid.className = 'image-grid';
-    grid.appendChild(imgBoxTry(heat, 'Harris response (heatmap)'));
-    grid.appendChild(imgBoxTry(all,  'All Harris peaks (overlay)'));
-    grid.appendChild(imgBoxTry(anms, 'ANMS selection (N=800)'));
-
-    wrap.appendChild(grid);
-    host.appendChild(wrap);
-  }
-
-  // optional: log one example URL for quick debugging in devtools
-  console.log('Example B1 path:', `${B1_DIR}/${B1_SCENES[0].sub}/${B1_SCENES[0].sub}_anms_800.png`);
 })();
 </script>
 <script>
