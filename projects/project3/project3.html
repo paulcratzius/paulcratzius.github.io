@@ -497,7 +497,7 @@ async function exists(url){
 })();
 </script>
 
-<!-- ============== PART 2: B.1 loader ============== -->
+<!-- ============== PART 2: B.1 loader (fixed: no HEAD) ============== -->
 <script>
 const B1_DIR = `${OUT}/b1_features`;
 const B1_SCENES = [
@@ -506,7 +506,17 @@ const B1_SCENES = [
   { sub:'stadium_high_center', label:'Stadium (high angle) — center' },
 ];
 
-(async ()=>{
+// helper: create box and remove if the image 404s
+function imgBoxTry(src, caption){
+  const box = document.createElement('div'); box.className='image-container';
+  const im  = document.createElement('img'); im.src = src; im.loading = 'lazy';
+  im.addEventListener('error', ()=> box.remove());
+  const cap = document.createElement('div'); cap.className='image-caption'; cap.textContent = caption || '';
+  box.appendChild(im); box.appendChild(cap);
+  return box;
+}
+
+(function(){
   const host = document.getElementById('b1-scenes');
   if(!host) return;
 
@@ -516,24 +526,22 @@ const B1_SCENES = [
     const all  = `${base}_harris_all.png`;
     const anms = `${base}_anms_800.png`;
 
-    // skip scene if nothing found
-    if(!(await exists(heat)) && !(await exists(all)) && !(await exists(anms))) continue;
+    const wrap = document.createElement('div'); wrap.className = 'section';
+    wrap.innerHTML = `<div class="section-title"><div class="section-line"></div><h2>${s.label}</h2></div>`;
 
-    const wrap = el('div', {class:'section'});
-    wrap.appendChild(el('div', {class:'section-title'},
-      `<div class="section-line"></div><h2>${s.label}</h2>`));
-
-    const grid = el('div', {class:'image-grid'});
-    if(await exists(heat)) grid.appendChild(imgBox(heat, 'Harris response (heatmap)'));
-    if(await exists(all )) grid.appendChild(imgBox(all,  'All Harris peaks (overlay)'));
-    if(await exists(anms)) grid.appendChild(imgBox(anms, 'ANMS selection (N=800)'));
+    const grid = document.createElement('div'); grid.className = 'image-grid';
+    grid.appendChild(imgBoxTry(heat, 'Harris response (heatmap)'));
+    grid.appendChild(imgBoxTry(all,  'All Harris peaks (overlay)'));
+    grid.appendChild(imgBoxTry(anms, 'ANMS selection (N=800)'));
 
     wrap.appendChild(grid);
     host.appendChild(wrap);
   }
+
+  // optional: log one example URL for quick debugging in devtools
+  console.log('Example B1 path:', `${B1_DIR}/${B1_SCENES[0].sub}/${B1_SCENES[0].sub}_anms_800.png`);
 })();
 </script>
-
 <script>
   function eagerLoadAllImages(){
     document.querySelectorAll('img').forEach(img=>{
