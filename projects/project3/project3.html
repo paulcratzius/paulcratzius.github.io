@@ -198,6 +198,149 @@
       </ul>
     </div>
   </div>
+
+  <!-- ==================== PART B — Feature Matching ==================== -->
+  <div class="section" id="partB">
+    <div class="section-title"><div class="section-line"></div><h2>Part B — Feature Matching for Autostitching</h2></div>
+    <div class="description">
+      In Part B I automate correspondences for autostitching. The pipeline: <b>(B.1) Harris + ANMS</b> to get strong and well-distributed interest points, <b>(B.2) descriptors</b> from 40×40 windows downsampled to 8×8 with bias/gain normalization, followed by matching and RANSAC (next).
+    </div>
+  </div>
+
+  <!-- ================= B.1 — Harris Corners & ANMS ================= -->
+  <div class="section" id="B1">
+    <div class="section-title"><div class="section-line"></div><h2>B.1 — Harris Corners &amp; ANMS</h2></div>
+    <div class="description">
+      Harris finds many candidate corners, but they can be <b>highly clustered</b> around textured regions. That is a problem for robust matching, because most points end up redundant. <b>Adaptive Non-Maximal Suppression (ANMS)</b> keeps strong responses while enforcing spatial spread, yielding a set of corners that is <b>well distributed</b> over the image.
+    </div>
+
+    <!-- International House — center -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>International House — center</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./outputs/b1_features/ihouse_center_harris_heatmap.png" alt="ihouse harris heatmap">
+          <div class="image-caption">Harris response (heatmap)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b1_features/ihouse_center_harris_all.png" alt="ihouse all harris">
+          <div class="image-caption">All Harris peaks (overlay)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b1_features/ihouse_center_anms_800.png" alt="ihouse anms">
+          <div class="image-caption">ANMS selection (N=800)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stadium (low angle) — center -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Stadium (low angle) — center</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./outputs/b1_features/stadium_low_center_harris_heatmap.png" alt="stadium low heatmap">
+          <div class="image-caption">Harris response (heatmap)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b1_features/stadium_low_center_harris_all.png" alt="stadium low all harris">
+          <div class="image-caption">All Harris peaks (overlay)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b1_features/stadium_low_center_anms_800.png" alt="stadium low anms">
+          <div class="image-caption">ANMS selection (N=800)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stadium (high angle) — center -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Stadium (high angle) — center</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./outputs/b1_features/stadium_high_center_harris_heatmap.png" alt="stadium high heatmap">
+          <div class="image-caption">Harris response (heatmap)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b1_features/stadium_high_center_harris_all.png" alt="stadium high all harris">
+          <div class="image-caption">All Harris peaks (overlay)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b1_features/stadium_high_center_anms_800.png" alt="stadium high anms">
+          <div class="image-caption">ANMS selection (N=800)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= B.2 — Feature Descriptor Extraction ================= -->
+  <div class="section" id="B2">
+    <div class="section-title"><div class="section-line"></div><h2>B.2 — Feature Descriptor Extraction (40×40 → 8×8)</h2></div>
+    <div class="description">
+      Implementation summary: for each ANMS point, I sample a <b>40×40</b> window (bilinear interpolation on a subpixel grid), lightly blur it, then <b>downsample to 8×8</b>. Each 8×8 descriptor is <b>bias/gain-normalized</b> (subtract mean, divide by std with ε-guard) to be robust to brightness/contrast. Below I show the 40×40 patch grids, the resulting 8×8 grids, and side-by-side 40↔8 pairs for a few samples.
+    </div>
+
+    <!-- International House — descriptors -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>International House — descriptors</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./outputs/b2_descriptors/ihouse_center/patch_grid_40x40.png" alt="ihouse 40x40 grid">
+          <div class="image-caption">40×40 patches (samples)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b2_descriptors/ihouse_center/patch_grid_8x8.png" alt="ihouse 8x8 grid">
+          <div class="image-caption">8×8 descriptors (normalized)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b2_descriptors/ihouse_center/patch_pairs_40_and_8.png" alt="ihouse 40 and 8 pairs">
+          <div class="image-caption">Pairs: 40×40 (left) → 8×8 (right)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stadium (low angle) — descriptors -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Stadium (low angle) — descriptors</h2></div>
+      <div class="description">
+        For this scene the foreground is mostly grass. As a result, many sampled patches look <b>very similar and “random”</b> in texture, especially after downsampling to 8×8. That’s expected: the uniform turf produces weak structure at small scales. ANMS still helps by spreading points over the frame, but descriptor distinctiveness will mainly come from lines/edges near the goal post and seats.
+      </div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./outputs/b2_descriptors/stadium_low_center/patch_grid_40x40.png" alt="stadium low 40x40 grid">
+          <div class="image-caption">40×40 patches (samples)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b2_descriptors/stadium_low_center/patch_grid_8x8.png" alt="stadium low 8x8 grid">
+          <div class="image-caption">8×8 descriptors (normalized)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b2_descriptors/stadium_low_center/patch_pairs_40_and_8.png" alt="stadium low 40 and 8 pairs">
+          <div class="image-caption">Pairs: 40×40 (left) → 8×8 (right)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stadium (high angle) — descriptors -->
+    <div class="section">
+      <div class="section-title"><div class="section-line"></div><h2>Stadium (high angle) — descriptors</h2></div>
+      <div class="image-grid">
+        <div class="image-container">
+          <img src="./outputs/b2_descriptors/stadium_high_center/patch_grid_40x40.png" alt="stadium high 40x40 grid">
+          <div class="image-caption">40×40 patches (samples)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b2_descriptors/stadium_high_center/patch_grid_8x8.png" alt="stadium high 8x8 grid">
+          <div class="image-caption">8×8 descriptors (normalized)</div>
+        </div>
+        <div class="image-container">
+          <img src="./outputs/b2_descriptors/stadium_high_center/patch_pairs_40_and_8.png" alt="stadium high 40 and 8 pairs">
+          <div class="image-caption">Pairs: 40×40 (left) → 8×8 (right)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ==================== /PART B ==================== -->
+
 </div>
 
 <a href="../../index.html" class="back-button">← Back to CS 180</a>
