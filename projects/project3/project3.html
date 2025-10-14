@@ -339,6 +339,18 @@
       </div>
     </div>
   </div>
+
+  <!-- ================= B.3 — Feature Matching ================= -->
+  <div class="section" id="B3">
+    <div class="section-title"><div class="section-line"></div><h2>B.3 — Feature Matching (Lowe ratio test)</h2></div>
+    <div class="description">
+      For matching I compare each descriptor in image&nbsp;1 to all descriptors in image&nbsp;2 using <b>SSD distance</b> in the 64-D space (the 8×8 patch flattened). I keep a pair only if it passes <b>Lowe’s ratio test</b>: the distance to the <i>best</i> neighbor must be significantly smaller than the distance to the <i>second best</i> neighbor.
+      Intuitively, when the closest match is much better than the next alternative, the correspondence is distinctive and reliable; otherwise it is ambiguous and likely a false positive. I use a threshold around <b>0.5</b> (cf. Fig. 6b in the paper), which aggressively filters ambiguous matches.  
+      <br/><br/>
+      The figures below show lines between the matched points for <i>Left↔Center</i> and <i>Right↔Center</i>. You can see that as we <b>increase the number of displayed matches</b> (e.g., going from a few top matches to many), <b>more outliers appear</b>—often visible as lines that cut diagonally across unrelated structures. In the next step (B.4) a RANSAC homography will prune those outliers by enforcing geometric consistency.
+    </div>
+    <div id="b3-scenes"></div>
+  </div>
   <!-- ==================== /PART B ==================== -->
 
 </div>
@@ -586,6 +598,64 @@ async function exists(url){
     host.appendChild(block);
   }
 })();
+</script>
+
+<!-- ===== B.3 dynamic loader (reads ./outputs/b3_matches/* if present) ===== -->
+<script>
+  (async ()=>{
+    const host = document.getElementById('b3-scenes');
+    if(!host) return;
+    const B3 = `${OUT}/b3_matches`;
+
+    // Helper: try stems with several extensions and return the first that exists
+    async function firstExisting(stems, exts=['.png','.jpg','.jpeg']){
+      for(const s of stems){
+        for(const e of exts){
+          const cand = `${s}${e}`;
+          if(await exists(cand)) return cand;
+        }
+      }
+      return '';
+    }
+
+    const PAIRS = [
+      { key:'LC', label:'Left ↔ Center', altKeys:['L_to_C','left_center'] },
+      { key:'RC', label:'Right ↔ Center', altKeys:['R_to_C','right_center'] },
+    ];
+    const VARIANTS = ['', '_k5', '_k10', '_k15', '_k20', '_top5', '_top10', '_top15', '_top20'];
+
+    for(const sc of SCENES){
+      const wrap = el('div', {class:'section'});
+      wrap.appendChild(el('div', {class:'section-title'},
+        `<div class="section-line"></div><h2>${sc.label} — Matches</h2>`));
+
+      const grid = el('div', {class:'image-grid onecol'});
+
+      for(const p of PAIRS){
+        // Build candidate stems for many common file name patterns
+        const stems = [];
+        // scene_LC_matches[_variant]
+        VARIANTS.forEach(v => stems.push(`${B3}/${sc.key}_${p.key}_matches${v}`));
+        // scene_L_to_C_matches etc.
+        for(const alt of p.altKeys){
+          VARIANTS.forEach(v => stems.push(`${B3}/${sc.key}_${alt}_matches${v}`));
+          VARIANTS.forEach(v => stems.push(`${B3}/${sc.key}_${alt}${v}`));
+        }
+        // generic "matches_scene_pair"
+        VARIANTS.forEach(v => stems.push(`${B3}/matches_${sc.key}_${p.key}${v}`));
+
+        const found = await firstExisting(stems);
+        if(found){
+          grid.appendChild(imgBox(found, `${p.label} — matches visualization`));
+        }
+      }
+
+      if(grid.children.length){
+        wrap.appendChild(grid);
+        host.appendChild(wrap);
+      }
+    }
+  })();
 </script>
 
 <script>

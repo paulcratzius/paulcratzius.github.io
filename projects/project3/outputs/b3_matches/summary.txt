@@ -1,0 +1,6 @@
+ihouse_left: 121 matches
+ihouse_right: 174 matches
+stadium_low_left: 93 matches
+stadium_low_right: 72 matches
+stadium_high_left: 171 matches
+stadium_high_right: 141 matches
