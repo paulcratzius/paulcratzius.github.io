@@ -40,6 +40,25 @@
     .tbl caption{caption-side:bottom;color:#555;margin-top:6px;font-size:.9rem}
     .muted{color:#666}
   </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <!-- MathJax config: allow $...$ inline and $$...$$ display math -->
+  <script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$','$$'], ['\\[','\\]']],
+      processEscapes: true,
+      processEnvironments: true
+    },
+    options: {
+      skipHtmlTags: ['script','noscript','style','textarea','pre','code'],
+      enableMenu: false
+    }
+  };
+  </script>
+  <script id="MathJax-script" async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
 </head>
 <body>
 <div class="container">
@@ -397,38 +416,51 @@
   <!-- ============== B.4 — Summary, Math & Key Takeaways ============== -->
 <div class="section" id="B4-summary">
   <div class="section-title"><div class="section-line"></div><h2>B.4 — Summary &amp; Math</h2></div>
-  <div class="description">
-    <p><b>Data reuse:</b> I reuse the B.1/B.2/B.3 pipeline verbatim: Harris response R = det(M) − k·(trace(M))<sup>2</sup> with
-    Sobel gradients; ANMS for spatial spread; 40×40 patches blurred and downsampled to 8×8; and descriptor bias/gain
-    normalization. Matching uses SSD in the 64-D space and Lowe’s ratio test. For RANSAC I restrict to the <b>top-15</b>
-    lowest-ratio pairs per direction.</p>
+  <div class="description math-note">
+    <p><b>Data reuse:</b> I reuse the B.1/B.2/B.3 pipeline verbatim: Harris response
+      $R=\det(\mathbf{M})-k\,\mathrm{tr}(\mathbf{M})^2$ with Sobel gradients; ANMS for spatial spread;
+      $40\times40$ patches blurred and downsampled to $8\times8$; and descriptor bias/gain normalization.
+      Matching uses SSD in the $64$-D space and Lowe’s ratio test. For RANSAC I restrict to the
+      <b>top-15</b> lowest-ratio pairs per direction.</p>
 
-    <p><b>Homography (normalized DLT):</b> For point pairs (xᵢ, yᵢ) ↔ (x′ᵢ, y′ᵢ) I estimate a 3×3 projective transform H
-    (with H<sub>33</sub> = 1). I first normalize both point sets with similarity transforms T<sub>1</sub> and T<sub>2</sub>
-    (zero mean, average distance √2). Then I build the homogeneous system A·h = 0 (two rows per pair) and solve by SVD; the last
-    right singular vector gives Ĥ. Finally I denormalize with H = T<sub>2</sub><sup>−1</sup> · Ĥ · T<sub>1</sub>.</p>
+    <p><b>Homography (normalized DLT):</b> For point pairs $(x_i,y_i)\leftrightarrow(x_i',y_i')$
+      I estimate a $3\times3$ projective transform $\mathbf{H}$ (with $H_{33}=1$). I first normalize both
+      point sets with similarity transforms $\mathbf{T}_1$ and $\mathbf{T}_2$ (zero mean, average distance $\sqrt{2}$).
+      Then I build the homogeneous system $\mathbf{A}\mathbf{h}=\mathbf{0}$ (two rows per pair) and solve by SVD;
+      the last right-singular vector gives $\hat{\mathbf{H}}$. Finally I denormalize with
+      $\mathbf{H}=\mathbf{T}_2^{-1}\,\hat{\mathbf{H}}\,\mathbf{T}_1$.</p>
 
     <div class="eq">
-      Rows of A for (xᵢ, yᵢ) ↦ (x′ᵢ, y′ᵢ):<br/>
-      [ 0  0  0   −xᵢ  −yᵢ  −1    y′ᵢ·xᵢ   y′ᵢ·yᵢ   y′ᵢ ]<br/>
-      [ xᵢ  yᵢ  1    0    0    0  −x′ᵢ·xᵢ  −x′ᵢ·yᵢ  −x′ᵢ ]
+      Rows of $\mathbf{A}$ for $(x_i,y_i)\mapsto(x_i',y_i')$:
+      $$\begin{bmatrix}
+      0 & 0 & 0 & -x_i & -y_i & -1 & y_i' x_i & y_i' y_i & y_i'\\
+      x_i & y_i & 1 & 0 & 0 & 0 & -x_i' x_i & -x_i' y_i & -x_i'
+      \end{bmatrix}.$$
     </div>
 
-    <p><b>RANSAC:</b> Repeat for N iterations: sample 4 pairs, compute H (DLT), and mark a correspondence as an inlier if the
-    reprojection error εᵢ = ‖ π( H · [xᵢ, yᵢ, 1]ᵀ ) − [x′ᵢ, y′ᵢ]ᵀ ‖<sub>2</sub> with π([u, v, w]ᵀ) = [u/w, v/w]ᵀ is &lt; τ
-    (here τ ≈ 3 px). Keep the model with the largest consensus, then refit H using all inliers.</p>
+    <p><b>RANSAC:</b> Repeat for $N$ iterations: sample $4$ pairs, compute $\mathbf{H}$ (DLT),
+      and mark a correspondence as an inlier if the reprojection error
+      $\varepsilon_i=\left\lVert \pi\!\big(\mathbf{H}[x_i,y_i,1]^\top\big)-[x_i',y_i']^\top\right\rVert_2$
+      with $\pi([u,v,w]^\top)=[u/w,\,v/w]^\top$ is $\lt \tau$ (here $\tau\approx3$ px).
+      Keep the model with the largest consensus; then refit $\mathbf{H}$ using all inliers.</p>
 
-    <p><b>Canvas &amp; warping:</b> Transform the four corners of each image, take the global axis-aligned bounding box, and add a
-    translation T so all coordinates are non-negative. Render every image into the common canvas using inverse mapping
-    (bilinear sampling) and binary validity masks.</p>
+    <p><b>Canvas &amp; warping:</b> Transform the four corners of each image, take the global
+      axis-aligned bounding box, and add a translation $\mathbf{T}$ so all coordinates are non-negative.
+      Render every image into the common canvas using inverse mapping (bilinear sampling) and binary validity masks.</p>
 
-    <p><b>Blending:</b> I reuse Part-A exactly. Each warped mask m yields a distance-to-boundary weight w = DT(m) (optionally
-    blurred and shaped by an exponent γ), normalized across images per pixel. For the Laplacian variant, I build Laplacian stacks
-    L<sup>A</sup><sub>k</sub>, L<sup>B</sup><sub>k</sub> and blend bands with Gaussian-blurred masks G<sub>k</sub>:</p>
-    <div class="eq">O = Σ<sub>k</sub> ( G<sub>k</sub> · L<sup>A</sup><sub>k</sub> + (1 − G<sub>k</sub>) · L<sup>B</sup><sub>k</sub> ).</div>
+    <p><b>Blending:</b> I reuse Part-A exactly. Each warped mask $m$ yields a distance-to-boundary weight
+      $w=\mathrm{DT}(m)$ (optionally blurred and shaped by an exponent $\gamma$), normalized across images per pixel.
+      For the Laplacian variant, I build Laplacian stacks $L_k^{A}$ and $L_k^{B}$ and blend bands with
+      Gaussian-blurred masks $G_k$:</p>
+
+    <div class="eq">
+      $$\mathbf{O}=\sum_{k}\Big( G_k\cdot L_k^{A} + \big(1-G_k\big)\cdot L_k^{B} \Big).$$
+    </div>
+
     <p>This hides both thin texture seams and slow illumination drifts.</p>
   </div>
 </div>
+
 
 
   <div class="section" id="B4-takeaways">
