@@ -821,6 +821,28 @@ async function exists(url){
     }
   });
 </script>
+<script>
+(function(){
+  // Markiere alle B4-Sektionen (die mit "RANSAC" oder "Auto mosaic" im Titel)
+  // und stelle ihre Grids auf eine Spalte.
+  function stackB4Grids(){
+    document.querySelectorAll('.section-title h2').forEach(h=>{
+      const t = h.textContent.toLowerCase();
+      if (t.includes('ransac') || t.includes('auto mosaic')) {
+        const sec = h.closest('.section');
+        if (!sec) return;
+        sec.querySelectorAll('.image-grid').forEach(g=>{
+          g.classList.add('onecol');   // <-- eine Spalte erzwingen
+        });
+      }
+    });
+  }
+  // 1) nach Page-Load ausführen
+  window.addEventListener('load', stackB4Grids);
+  // 2) falls Inhalte dynamisch nachgeladen werden, nochmals per MutationObserver
+  new MutationObserver(stackB4Grids).observe(document.body, {childList:true, subtree:true});
+})();
+</script>
 
 </body>
 </html>
