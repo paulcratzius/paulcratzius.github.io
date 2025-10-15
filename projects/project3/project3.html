@@ -812,5 +812,15 @@ async function exists(url){
   window.addEventListener('beforeprint', eagerLoadAllImages);
   window.addEventListener('load', eagerLoadAllImages);
 </script>
+<script>
+  // Enlarge only the B4 result grids
+  document.querySelectorAll('.section-title h2').forEach(h=>{
+    if(/RANSAC|Auto mosaic/i.test(h.textContent)){
+      const sec = h.closest('.section');
+      sec?.querySelectorAll('.image-grid').forEach(g=>g.classList.add('b4-large'));
+    }
+  });
+</script>
+
 </body>
 </html>
