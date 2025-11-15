@@ -1,0 +1,6 @@
+Image: /Users/paulcratzius/uni/berkeley/cs180/paulcratzius.github.io/projects/project4/inputs/part1/fox.jpg
+Device: cpu
+H=689, W=1024, N=705536
+L=2, in_dim=10
+width=256, depth=4
+lr=0.01, num_iters=3000, batch_size=10000

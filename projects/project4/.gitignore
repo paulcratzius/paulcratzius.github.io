@@ -1,0 +1,7 @@
+/submission/*
+/inputs/calibration/*
+/inputs/object/*
+/inputs/part1/paper.pdf
+
+/outputs/calibration/*
+/outputs/dataset/my_object.npz
