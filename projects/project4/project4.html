@@ -945,6 +945,131 @@ Split: N_train=32, N_val=4, N_test=4
     </div>
   </div>
 
+
+  <<div class="section" id="part2-own-data">
+    <div class="section-title">
+      <div class="section-line"></div><h2>2.6 — Training on My Own Dataset</h2>
+    </div>
+    
+    <div class="description">
+      <b>Hyperparameters &amp; Setup.</b><br>
+      Moving from synthetic data to real-world data requires careful tuning of the ray sampling parameters. 
+      Unlike the Lego dataset where the camera is meters away, my object capture was done close-up. 
+      Therefore, I adjusted the bounds significantly:
+      <ul class="bul">
+        <li><b>Near/Far Bounds:</b> I set <span class="kbd">near = 0.02</span> and <span class="kbd">far = 0.5</span>. 
+            The default values (2.0 and 6.0) would have started sampling <i>behind</i> my object, resulting in empty rays. 
+            These tighter bounds ensure the sampling points are concentrated exactly where the object geometry exists.</li>
+        <li><b>Sample Count:</b> I increased the samples per ray from 32 to <b>64</b>. 
+            Real-world data contains more noise and complex geometry than the synthetic Lego; 
+            more samples allow the network to integrate density more accurately along the ray, reducing artifacts.</li>
+        <li><b>Image Resolution:</b> To keep training times reasonable on my hardware, I downscaled the input images slightly. 
+            I ensured the intrinsics matrix ($K$) was scaled proportionally so the geometry remained valid.</li>
+      </ul>
+    </div>
+
+    <div class="description">
+      <b>Results: Custom Object.</b><br>
+      Below is the final rendered frame and a short animation from my training run.
+      <br><br>
+      <i>Note:</i> I was unable to generate a high-quality, full 360° orbit GIF for this specific object due to gaps in my dataset capture 
+      that caused instability from certain angles. Additionally, I was traveling outside the US during the final days of the project 
+      and could not recapture the data. However, the visuals below demonstrate that the network successfully learned the geometry 
+      and texture of the visible surfaces.
+    </div>
+
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="./outputs/emil_my_object2/run_20251119-161301/recon_final.png" alt="Final reconstruction of my object">
+        <div class="image-caption">
+            <b>Final Reconstruction:</b> The model has successfully captured the color and general shape of the target object.
+        </div>
+      </div>
+      <div class="image-container">
+        <img src="./outputs/part2/Download.gif" alt="Animation of my object">
+        <div class="image-caption">
+            <b>Rendered View:</b> A short animation rendered from the trained NeRF model.
+        </div>
+      </div>
+    </div>
+
+    <div class="description">
+      <b>Training Metrics.</b><br>
+      Below is the PSNR curve for my custom object. The curve shows a steady improvement in reconstruction quality over time, 
+      validating that the network was converging despite the dataset challenges.
+    </div>
+
+    <div class="image-grid onecol">
+        <div class="image-container">
+          <img src="./outputs/emil_my_object2/run_20251119-161301/psnr_curve.png" alt="PSNR Curve My Object">
+          <div class="image-caption">
+            <b>PSNR vs. Iterations:</b> The metric rises quickly in the beginning as the coarse shape is learned 
+            and continues to improve as fine details are resolved.
+          </div>
+        </div>
+    </div>
+
+    <div class="description">
+      <b>Validation on Lafufu Dataset.</b><br>
+      To further verify my implementation and ensure the code handles real-world capture data correctly, 
+      I ran the full pipeline on the "Lafufu" dataset. The results here were much more robust, producing clean novel views 
+      and demonstrating the code's ability to handle 360° rotations when the pose estimation is high quality.
+    </div>
+
+    <div class="image-grid">
+        <div class="image-container">
+            <img src="./outputs/lafufu-pics/vid1.gif" alt="Lafufu Orbit GIF 1">
+            <div class="image-caption"><b>Orbit 1:</b> Smooth circular path around the object.</div>
+        </div>
+        <div class="image-container">
+            <img src="./outputs/lafufu-pics/vid2.gif" alt="Lafufu Orbit GIF 2">
+            <div class="image-caption"><b>Orbit 2:</b> Alternative elevation showing view-dependent consistency.</div>
+        </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 20px; margin-bottom: 10px;">
+        <b>Lafufu Intermediate & Novel Views:</b>
+    </div>
+    <div class="image-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic1.jpeg" alt="Lafufu 1"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic2.jpeg" alt="Lafufu 2"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic3.jpeg" alt="Lafufu 3"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic4.jpeg" alt="Lafufu 4"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic5.jpeg" alt="Lafufu 5"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic6.jpeg" alt="Lafufu 6"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic7.jpeg" alt="Lafufu 7"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic8.jpeg" alt="Lafufu 8"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic9.jpeg" alt="Lafufu 9"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic10.jpeg" alt="Lafufu 10"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic11.jpeg" alt="Lafufu 11"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic12.jpeg" alt="Lafufu 12"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic13.jpeg" alt="Lafufu 13"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic14.jpeg" alt="Lafufu 14"></div>
+        <div class="image-container"><img src="./outputs/lafufu-pics/pic15.jpeg" alt="Lafufu 15"></div>
+    </div>
+  </div>
+
+  <div class="section" id="final-takeaways">
+    <div class="section-title"><div class="section-line"></div><h2>Conclusion &amp; Key Takeaways</h2></div>
+    <div class="description">
+      Working through Neural Fields in 2D (Part 1) and Volumetric NeRF (Part 2) highlighted several fundamental concepts in modern view synthesis:
+      <ul class="bul">
+        <li><b>Geometry is implicit but precise:</b> Unlike explicit meshes or point clouds, NeRF stores geometry in the weights of the MLP. 
+            However, for this to work, the input camera poses (extrinsics) must be incredibly accurate. 
+            My experience with the custom dataset showed that even small errors in calibration or pose estimation 
+            can lead to blurry artifacts or failure to converge in novel views.</li>
+        <li><b>The importance of Sampling:</b> The <span class="kbd">near</span> and <span class="kbd">far</span> bounds are not just optimization tricks; 
+            they physically define the volume the network cares about. Setting these incorrectly (as I learned when moving from Lego to my own object) 
+            wastes computational budget on empty space.</li>
+        <li><b>Spectral Bias &amp; Detail:</b> Across both parts, the "spectral bias" of neural networks was evident. 
+            Low-frequency shapes (blobs, general colors) are learned almost immediately, while high-frequency details (text, sharp edges) 
+            require positional encoding and significantly more training iterations to resolve.</li>
+        <li><b>Data quality is king:</b> The robust results on the Lafufu dataset compared to my own hurried scan emphasize that 
+            high-quality data capture (consistent lighting, reduced motion blur, good coverage) is just as important as the model architecture itself.</li>
+      </ul>
+    </div>
+  </div>
+
   <!-- ===== 2.6 Training with My Own Data & Takeaways ===== -->
   <div class="section" id="part2-takeaways">
     <div class="section-title">
