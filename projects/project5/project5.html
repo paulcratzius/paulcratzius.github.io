@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project 5: Diffusion Models (Part A)</title>
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#111;min-height:100vh;padding:40px 20px}
+    .container{max-width:1100px;margin:0 auto}
+    .header{text-align:center;margin-bottom:28px}
+    h1{font-size:2rem;font-weight:700;margin-bottom:6px}
+    .date{font-size:1rem;color:#555}
+    .section{margin:32px 0}
+    .section-title{display:flex;align-items:center;margin-bottom:12px}
+    .section-line{width:4px;height:22px;background:#111;margin-right:10px;border-radius:2px}
+    .section-title h2{font-size:1.15rem}
+    .description{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;line-height:1.6}
+    .image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px}
+    .image-grid.onecol{grid-template-columns:1fr}
+    .image-container{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:10px}
+    .image-container img{display:block;width:100%;height:auto;border-radius:6px}
+    /* Wichtig für DeepFloyd 64x64 Bilder: Pixelated rendering verhindert Matsch */
+    .image-container img.pixelated {image-rendering: pixelated;}
+    .image-caption{margin-top:8px;text-align:center;color:#444;font-size:.9rem}
+    .kbd{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f2f2f2;border:1px solid #e6e6e6;border-radius:6px;padding:1px 6px}
+    .subnote{font-size:.95rem;color:#333;margin-top:12px}
+    .bul{margin-left:1rem}
+    /* Style für Code-Blöcke */
+    pre{background:#0b0b0b;color:#eee;padding:12px;border-radius:10px;overflow:auto;font-size:.9rem;margin-top:10px;margin-bottom:10px;}
+
+    .back-button{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 20px;color:#000;font-size:1rem;font-weight:500;cursor:pointer;transition:.2s;text-decoration:none;box-shadow: 0 4px 12px rgba(0,0,0,0.1);}
+    .back-button:hover{transform:translateX(-50%) translateY(-2px);background:#f5f5f5}
+  </style>
+
+  <script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$','$$'], ['\\[','\\]']],
+      processEscapes: true,
+      processEnvironments: true
+    },
+    options: {
+      skipHtmlTags: ['script','noscript','style','textarea','pre','code'],
+      enableMenu: false
+    }
+  };
+  </script>
+  <script id="MathJax-script" async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  </head>
+
+
+
+
+
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Project 5: Diffusion Models (Part A)</h1>
+    <div class="date">CS180 • Fall 2025</div>
+  </div>
+
+  <div class="section" id="overview">
+    <div class="section-title"><div class="section-line"></div><h2>Overview: The Power of Diffusion</h2></div>
+    <div class="description">
+      In this project, I explore <b>Diffusion Models</b>, the state-of-the-art approach for generative image tasks.
+      Unlike GANs, diffusion models work by iteratively removing noise from a signal to recover a clean image representing the data distribution.
+      <br/><br/>
+      <b>Part A</b> focuses on using a pre-trained model, <b>DeepFloyd IF</b>, to understand the sampling process.
+      I start by generating images from text prompts and analyzing the effect of inference steps.
+      Specifically, I selected prompts that will be reused later for <b>Visual Anagrams</b> and <b>Hybrid Images</b>.
+    </div>
+  </div>
+
+  <div class="section" id="part0">
+    <div class="section-title"><div class="section-line"></div><h2>Part 0 — Setup and Text-to-Image Generation</h2></div>
+    <div class="description">
+      To begin, I set up the environment to use Stability AI's <b>DeepFloyd IF-I-XL-v1.0</b>.
+      I generated text embeddings for three specific prompts and tested the model's output quality by varying the number of inference steps.
+      <div class="subnote">
+        <b>Random Seed: <span class="kbd">100</span></b>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="p0-prompt1">
+    <div class="section-title"><div class="section-line"></div><h2>Prompt 1: "an oil painting of people around a campfire"</h2></div>
+    <div class="description">
+      This prompt was chosen as the basis for the <b>Visual Anagrams</b> task later.
+      I compared 20 inference steps against 100 inference steps.
+    </div>
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="outputs/part0/notebook/people_campfire_20.png" alt="Campfire 20 steps" class="pixelated">
+        <div class="image-caption"><b>20 Inference Steps</b><br/>The composition is visible, but the details are blurry. The faces are indistinct, and the fire lacks texture.</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part0/notebook/people_campfire_100.png" alt="Campfire 100 steps" class="pixelated">
+        <div class="image-caption"><b>100 Inference Steps</b><br/>Much higher fidelity. The lighting from the fire is consistent, and the figures are clearly defined.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="p0-prompt2">
+    <div class="section-title"><div class="section-line"></div><h2>Prompt 2: "a lithograph of a skull"</h2></div>
+    <div class="description">
+      This prompt is intended for <b>Hybrid Images</b> (mixing low-frequency skull shapes with high-frequency textures).
+      Lithographs rely on sharp lines, making them a good test for convergence.
+    </div>
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="outputs/part0/notebook/skull_20.png" alt="Skull 20 steps" class="pixelated">
+        <div class="image-caption"><b>20 Inference Steps</b><br/>The skull shape is present, but the "lithograph" texture looks more like random noise than intentional hatching.</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part0/notebook/skull_100.png" alt="Skull 100 steps" class="pixelated">
+        <div class="image-caption"><b>100 Inference Steps</b><br/>Sharp, crisp lines. The shading uses distinct strokes characteristic of the lithograph style.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="p0-prompt3">
+    <div class="section-title"><div class="section-line"></div><h2>Prompt 3: "a photo of a hipster barista"</h2></div>
+    <div class="description">
+      A photorealistic prompt to test the model's ability to generate faces and complex clothing details, useful for <b>Inpainting</b> tests later.
+    </div>
+    <div class="image-grid">
+      <div class="image-container">
+        <img src="outputs/part0/notebook/barista_20.png" alt="Barista 20 steps" class="pixelated">
+        <div class="image-caption"><b>20 Inference Steps</b><br/>The face is somewhat distorted, and the background elements (coffee machine/shelves) are muddled.</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part0/notebook/barista_100.png" alt="Barista 100 steps" class="pixelated">
+        <div class="image-caption"><b>100 Inference Steps</b><br/>Photorealistic quality. The facial features are symmetrical, the glasses are well-formed, and the apron texture is realistic.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="p0-reflection">
+    <div class="section-title"><div class="section-line"></div><h2>Reflection on Inference Steps</h2></div>
+    <div class="description">
+      The comparison between 20 and 100 steps highlights the iterative nature of diffusion.
+      <br/><br/>
+      At <b>20 steps</b>, the model has successfully mapped the random noise to the general "manifold" of the prompt—colors and rough shapes are correct—but it hasn't had enough time to resolve high-frequency details.
+      <br/><br/>
+      At <b>100 steps</b>, the model converges to a high-quality output. Textures (like the lithograph lines or oil paint strokes) become distinct rather than noisy blobs. This confirms that higher step counts are crucial for style transfer and fine details.
+    </div>
+  </div>
+  <!-- Part 1.1 -->
+<div class="section" id="part1">
+    <div class="section-title"><div class="section-line"></div><h2>Part 1 — Sampling Loops</h2></div>
+    <div class="description">
+      In the first part of the project, I moved from using the pre-trained model as a "black box" to implementing the diffusion process myself.
+      The goal was to understand how noise is added to an image (forward process) and how the model reverses this to generate clean images (reverse process).
+    </div>
+  </div>
+
+  <div class="section" id="part1-1">
+    <div class="section-title"><div class="section-line"></div><h2>1.1 Implementing the Forward Process</h2></div>
+    <div class="description">
+      The <b>Forward Process</b> describes the physical diffusion part of the model: taking a clean image and progressively destroying its structure by adding Gaussian noise.
+      This is deterministic and depends on the timestep <i>t</i>.
+      <br/><br/>
+      I implemented the function <code>forward(im, t)</code> which scales the image and adds noise according to the schedule $\bar\alpha_t$:
+
+      <pre>
+def forward(im, t):
+  """
+  Args:
+    im : torch tensor of size (1, 3, 64, 64) representing the clean image
+    t : integer timestep
+
+  Returns:
+    im_noisy : torch tensor of size (1, 3, 64, 64) representing the noisy image at timestep t
+  """
+  with torch.no_grad():
+    alpha_t = alphas_cumprod[t]
+    epsilon = torch.randn_like(im)
+    im_noisy = torch.sqrt(alpha_t) * im + torch.sqrt(1 - alpha_t) * epsilon
+  return im_noisy
+      </pre>
+
+      Below, you can see the effect of this process on the Campanile test image at different timesteps.
+      At <b>t=250</b>, the image is just slightly grainy. By <b>t=750</b>, the original signal is almost entirely lost in noise.
+    </div>
+
+    <div class="image-grid" style="grid-template-columns: repeat(4, 1fr);">
+      
+      <div class="image-container">
+        <img src="outputs/part1/test_image.png" alt="Original t=0" class="pixelated">
+        <div class="image-caption"><b>Original (t=0)</b></div>
+      </div>
+
+      <div class="image-container">
+        <img src="outputs/part1/part1_1/noisy_image_250.png" alt="Noisy t=250" class="pixelated">
+        <div class="image-caption"><b>t = 250</b></div>
+      </div>
+
+      <div class="image-container">
+        <img src="outputs/part1/part1_1/noisy_image_500.png" alt="Noisy t=500" class="pixelated">
+        <div class="image-caption"><b>t = 500</b></div>
+      </div>
+
+      <div class="image-container">
+        <img src="outputs/part1/part1_1/noisy_image_750.png" alt="Noisy t=750" class="pixelated">
+        <div class="image-caption"><b>t = 750</b></div>
+      </div>
+
+    </div>
+  </div>
+
+
+<!-- Part 1.2 -->
+
+
+  <div class="section" id="part1-2">
+    <div class="section-title"><div class="section-line"></div><h2>1.2 Classical Denoising</h2></div>
+    <div class="description">
+      To establish a baseline, I attempted to remove the noise using classical <b>Gaussian Blurring</b>.
+      This method works by averaging neighboring pixels, which smooths out high-frequency noise but inevitably destroys high-frequency details (edges, textures).
+      <br/><br/>
+      I applied a Gaussian blur (e.g., kernel size 5, sigma 2.0) to the noisy images.
+      <pre>denoised_im = TF.gaussian_blur(noisy_im, kernel_size=5, sigma=2.0)</pre>
+      As seen below, this fails to recover the original content effectively. While the noise is reduced, the Campanile becomes a blurry blob. This highlights the difficulty of the task: we need a model that can <i>hallucinate</i> missing details, not just smooth them out.
+    </div>
+
+    <div class="image-grid" style="grid-template-columns: 1fr 1fr;">
+      
+      <div class="image-container">
+        <img src="outputs/part1/part1_2/noisy_250.png" alt="Noisy t=250" class="pixelated">
+        <div class="image-caption"><b>Noisy (t=250)</b></div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_2/gaussian_250.png" alt="Gaussian t=250" class="pixelated">
+        <div class="image-caption"><b>Gaussian Denoising</b><br/>Noise reduced, but details lost.</div>
+      </div>
+
+      <div class="image-container">
+        <img src="outputs/part1/part1_2/noisy_500.png" alt="Noisy t=500" class="pixelated">
+        <div class="image-caption"><b>Noisy (t=500)</b></div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_2/gaussian_500.png" alt="Gaussian t=500" class="pixelated">
+        <div class="image-caption"><b>Gaussian Denoising</b><br/>The tower is barely recognizable.</div>
+      </div>
+
+      <div class="image-container">
+        <img src="outputs/part1/part1_2/noisy_750.png" alt="Noisy t=750" class="pixelated">
+        <div class="image-caption"><b>Noisy (t=750)</b></div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_2/gaussian_750.png" alt="Gaussian t=750" class="pixelated">
+        <div class="image-caption"><b>Gaussian Denoising</b><br/>Almost purely a gray blur.</div>
+      </div>
+
+    </div>
+  </div>
+
+
+<!-- Part 1.3 -->
+
+
+  <div class="section" id="part1-3">
+    <div class="section-title"><div class="section-line"></div><h2>1.3 One-Step Denoising</h2></div>
+    <div class="description">
+      In this part, I used the pre-trained UNet to estimate the noise in the image and remove it in a single step.
+      The UNet was trained to predict the noise $\epsilon$ given a noisy image $x_t$ and the timestep $t$.
+      <br/><br/>
+      By rearranging the forward process equation, we can estimate the original image $x_0$ directly:
+      $$ \hat{x}_0 = \frac{x_t - \sqrt{1 - \bar\alpha_t} \cdot \epsilon_\theta(x_t, t)}{\sqrt{\bar\alpha_t}} $$
+      Below, I show the results for three different noise levels.
+      While the model does a decent job at projecting the noisy image back onto the "manifold of natural images", detail is lost at higher noise levels because the problem becomes increasingly ill-posed.
+    </div>
+
+    <div class="subnote" style="margin-top: 20px; margin-bottom: 10px;"><b>Noise Level t = 250</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/test_image.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_1/noisy_image_250.png" alt="Noisy 250" class="pixelated">
+        <div class="image-caption">Noisy (t=250)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_3/denoised_1step_250.png" alt="One-Step 250" class="pixelated">
+        <div class="image-caption"><b>One-Step Denoised</b><br>Very clear, almost perfect reconstruction.</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>Noise Level t = 500</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/test_image.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_1/noisy_image_500.png" alt="Noisy 500" class="pixelated">
+        <div class="image-caption">Noisy (t=500)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_3/denoised_1step_500.png" alt="One-Step 500" class="pixelated">
+        <div class="image-caption"><b>One-Step Denoised</b><br>Blurrier, textures like the clock face are lost.</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>Noise Level t = 750</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/test_image.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_1/noisy_image_750.png" alt="Noisy 750" class="pixelated">
+        <div class="image-caption">Noisy (t=750)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_3/denoised_1step_750.png" alt="One-Step 750" class="pixelated">
+        <div class="image-caption"><b>One-Step Denoised</b><br>Significant loss of detail, hallucinates generic features.</div>
+      </div>
+    </div>
+
+  </div>
+
+
+<!-- Part 1.4. -->
+
+<div class="section" id="part1-4">
+    <div class="section-title"><div class="section-line"></div><h2>1.4 Implementing Iterative Denoising</h2></div>
+    <div class="description">
+      The core idea of diffusion models is to denoise <i>iteratively</i>. Instead of jumping from pure noise to a clean image in one go (which is hard), we take small steps.
+      <br/><br/>
+      I implemented the `iterative_denoise` function which follows the strided timestep schedule. At each step $t$, the model predicts the noise, estimates a cleaner image $x_0$, and then moves to the next timestep $t'$ (where $t' < t$).
+      To skip steps and speed up generation, I used a strided schedule (stride=30), moving from $t=990$ down to $0$.
+      <br/><br/>
+      Here is the core update step I implemented:
+      
+      <pre>
+# 1. Estimate x_0 from x_t
+x0_estimate = (image - torch.sqrt(1 - alpha_cumprod) * noise_est) / torch.sqrt(alpha_cumprod)
+
+# 2. Calculate the mean for x_{t-1}
+term1 = (torch.sqrt(alpha_cumprod_prev) * beta / (1 - alpha_cumprod)) * x0_estimate
+term2 = (torch.sqrt(alpha) * (1 - alpha_cumprod_prev) / (1 - alpha_cumprod)) * image
+pred_mean = term1 + term2
+
+# 3. Add variance (stochasticity)
+pred_prev_image = add_variance(predicted_variance, t, pred_mean)
+      </pre>
+
+
+      <br><br/>
+
+      Here is my complete method
+
+
+      <pre>
+def iterative_denoise(im_noisy, i_start, prompt_embeds, timesteps, display=True):
+  image = im_noisy
+
+  with torch.no_grad():
+    for i in range(i_start, len(timesteps) - 1):
+      # Get timesteps
+      t = timesteps[i]
+      prev_t = timesteps[i+1]
+
+      alpha_cumprod = alphas_cumprod[t]
+      alpha_cumprod_prev = alphas_cumprod[prev_t]
+      
+      # alpha_t = alpha_bar_t / alpha_bar_prev
+      alpha = alpha_cumprod / alpha_cumprod_prev
+      beta = 1 - alpha
+
+      model_output = stage_1.unet(
+          image,
+          t,
+          encoder_hidden_states=prompt_embeds,
+          return_dict=False
+      )[0]
+
+      # Split estimate into noise and variance estimate
+      noise_est, predicted_variance = torch.split(model_output, image.shape[1], dim=1)
+
+      # 1. Estimate x_0 from x_t (rearranging the forward diffusion equation)
+      # x_0 = (x_t - sqrt(1 - alpha_bar) * noise) / sqrt(alpha_bar)
+      x0_estimate = (image - torch.sqrt(1 - alpha_cumprod) * noise_est) / torch.sqrt(alpha_cumprod)
+      
+      # 2. Calculate the mean for x_{t-1} using equation 3
+      # term1 = (sqrt(alpha_bar_prev) * beta) / (1 - alpha_bar) * x_0
+      term1 = (torch.sqrt(alpha_cumprod_prev) * beta / (1 - alpha_cumprod)) * x0_estimate
+      
+      # term2 = (sqrt(alpha) * (1 - alpha_bar_prev) / (1 - alpha_bar)) * x_t
+      term2 = (torch.sqrt(alpha) * (1 - alpha_cumprod_prev) / (1 - alpha_cumprod)) * image
+      
+      pred_mean = term1 + term2
+      
+      # 3. Add the predicted variance (v_sigma)
+      pred_prev_image = add_variance(predicted_variance, t, pred_mean)
+
+      if display and i % 5 == 0:
+          print(f"Denoising step {i}, t={t}")
+          media.show_image(image[0].permute(1, 2, 0).cpu().detach() / 2.0 + 0.5)
+
+      image = pred_prev_image
+
+    clean = image.cpu().detach().numpy()
+
+  return clean
+
+prompt_embeds = prompt_embeds_dict["a high quality photo"]
+
+# Add noise
+i_start = 10
+t = strided_timesteps[i_start]
+im_noisy = forward(test_im, t).half().to(device)
+
+# Denoise
+print("Iterative Denoising:")
+clean = iterative_denoise(im_noisy,
+                          i_start=i_start,
+                          prompt_embeds=prompt_embeds,
+                          timesteps=strided_timesteps)
+
+# We are at t = strided_timesteps[i_start], which is the start point
+current_t = strided_timesteps[i_start]
+alpha_cumprod_t = alphas_cumprod[current_t]
+
+# Get noise estimate for one-step
+with torch.no_grad():
+    noise_est_onestep = stage_1.unet(
+        im_noisy,
+        current_t,
+        encoder_hidden_states=prompt_embeds,
+        return_dict=False
+    )[0][:, :3] # Take only noise channels
+
+    clean_one_step = (im_noisy - torch.sqrt(1 - alpha_cumprod_t) * noise_est_onestep) / torch.sqrt(alpha_cumprod_t)
+    # Convert to numpy for display compatibility
+    clean_one_step = clean_one_step.cpu().detach().numpy()
+
+blur_filtered = TF.gaussian_blur(im_noisy, kernel_size=5, sigma=2.0)
+blur_filtered = blur_filtered.cpu().detach().numpy()
+
+print("Final Results Comparison:")
+media.show_images({
+    'Noisy': im_noisy[0].permute(1, 2, 0).cpu().detach() / 2.0 + 0.5,
+    'Iteratively Denoised': clean[0].transpose(1, 2, 0) / 2.0 + 0.5,
+    'One-Step Denoised': clean_one_step[0].transpose(1, 2, 0) / 2.0 + 0.5,
+    'Gaussian Blurred': blur_filtered[0].transpose(1, 2, 0) / 2.0 + 0.5
+})
+      </pre>
+
+      Below is the evolution of the Campanile image over the denoising process (starting from a noisy image at t=690).
+    </div>
+
+    <div class="subnote" style="margin-bottom: 10px;"><b>Denoising Process (Every 5th Iteration) starting with i_start = 10</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(5, 1fr);">
+      
+      <div class="image-container">
+        <img src="outputs/part1/part1_4/iter_step_0.png" alt="Step 0" class="pixelated">
+        <div class="image-caption">Step 0 (t=690)<br>Start</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_4/iter_step_5.png" alt="Step 5" class="pixelated">
+        <div class="image-caption">Step 5 (t=540)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_4/iter_step_10.png" alt="Step 10" class="pixelated">
+        <div class="image-caption">Step 10 (t=390)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_4/iter_step_15.png" alt="Step 15" class="pixelated">
+        <div class="image-caption">Step 15 (t=240)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_4/iter_step_20.png" alt="Step 20" class="pixelated">
+        <div class="image-caption">Step 20 (t=90)<br>Near End</div>
+      </div>
+      
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>Method Comparison</b></div>
+    <div class="description">
+      Here I compare the results of different denoising strategies on the same noisy input.
+      <b>Iterative Denoising</b> clearly produces the sharpest and most faithful reconstruction of the Campanile, far superior to Gaussian blur or single-step prediction.
+    </div>
+    
+    <div class="image-grid" style="grid-template-columns: repeat(4, 1fr);">
+      
+      <div class="image-container">
+        <img src="outputs/part1/part1_4/final_noisy.png" alt="Noisy Input" class="pixelated">
+        <div class="image-caption"><b>Noisy Input</b><br>(t=690)</div>
+      </div>
+
+      <div class="image-container">
+        <img src="outputs/part1/part1_4/final_gaussian_blurred.png" alt="Gaussian" class="pixelated">
+        <div class="image-caption"><b>Gaussian Blur</b><br>Very blurry</div>
+      </div>
+
+      <div class="image-container">
+        <img src="outputs/part1/part1_4/final_1step_denoised.png" alt="One Step" class="pixelated">
+        <div class="image-caption"><b>One-Step</b><br>Better, but lacks detail</div>
+      </div>
+
+      <div class="image-container">
+        <img src="outputs/part1/part1_4/final_iter_denoised.png" alt="Iterative" class="pixelated" style="border: 2px solid #4CAF50;">
+        <div class="image-caption"><b>Iterative (Ours)</b><br>Sharpest result</div>
+      </div>
+
+    </div>
+
+  </div>
+
+<!-- Part 1.5. -->
+
+<div class="section" id="part1-5">
+    <div class="section-title"><div class="section-line"></div><h2>1.5 Diffusion Model Sampling</h2></div>
+    <div class="description">
+      Now that I have a working iterative denoising loop, I can use it to generate completely new images!
+      Instead of starting with a noisy Campanile, I start with <b>pure Gaussian noise</b> ($x_T \sim \mathcal{N}(0, \mathbf{I})$) and denoise it using the prompt <code>"a high quality photo"</code>.
+      <br/><br/>
+      Since the initial noise is random, every run produces a different image. This is the core of generative AI.
+      <br/><br/>
+      Below are 5 samples generated from scratch. Without advanced guidance (which comes in the next section), the results are somewhat dream-like and abstract but show coherent textures.
+    </div>
+
+    <div class="image-grid" style="grid-template-columns: repeat(5, 1fr);">
+      
+      <div class="image-container">
+        <img src="outputs/part1/part1_5/sample1.png" alt="Sample 1" class="pixelated">
+        <div class="image-caption">Sample 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_5/sample2.png" alt="Sample 2" class="pixelated">
+        <div class="image-caption">Sample 2</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_5/sample3.png" alt="Sample 3" class="pixelated">
+        <div class="image-caption">Sample 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_5/sample4.png" alt="Sample 4" class="pixelated">
+        <div class="image-caption">Sample 4</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_5/sample5.png" alt="Sample 5" class="pixelated">
+        <div class="image-caption">Sample 5</div>
+      </div>
+
+    </div>
+  </div>
+
+
+
+  <!-- Part 1.6 -->
+
+  <div class="section" id="part1-6">
+    <div class="section-title"><div class="section-line"></div><h2>1.6 Classifier-Free Guidance (CFG)</h2></div>
+    <div class="description">
+      The samples in the previous section were coherent but looked a bit "dreamy" and lacked sharp definition.
+      To fix this, I implemented <b>Classifier-Free Guidance (CFG)</b>.
+      <br/><br/>
+      The idea is to compute two noise estimates at each step:
+      <ul class="bul">
+        <li>$\epsilon_u$: Unconditional noise (prompt: <code>""</code>)</li>
+        <li>$\epsilon_c$: Conditional noise (prompt: <code>"a high quality photo"</code>)</li>
+      </ul>
+      We then extrapolate the noise estimate away from the unconditional prediction towards the conditional one using a guidance scale $\gamma > 1$:
+      $$ \epsilon = \epsilon_u + \gamma (\epsilon_c - \epsilon_u) $$
+      
+      Here is my implementation of the CFG update step:
+      <pre>
+# Compute the CFG noise estimate
+# Formula: noise = noise_uncond + scale * (noise_cond - noise_uncond)
+noise_est = uncond_noise_est + scale * (noise_est - uncond_noise_est)
+      </pre>
+
+      With a guidance scale of $\gamma = 7$, the results are dramatically better. The images below (generated from the same "a high quality photo" prompt) are much sharper, have higher contrast, and look like actual photographs compared to the results in Part 1.5.
+    </div>
+
+    <div class="image-grid" style="grid-template-columns: repeat(5, 1fr);">
+      
+      <div class="image-container">
+        <img src="outputs/part1/part1_6/cfg_sample1.png" alt="CFG Sample 1" class="pixelated">
+        <div class="image-caption">Sample 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_6/cfg_sample2.png" alt="CFG Sample 2" class="pixelated">
+        <div class="image-caption">Sample 2</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_6/cfg_sample3.png" alt="CFG Sample 3" class="pixelated">
+        <div class="image-caption">Sample 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_6/cfg_sample4.png" alt="CFG Sample 4" class="pixelated">
+        <div class="image-caption">Sample 4</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_6/cfg_sample5.png" alt="CFG Sample 5" class="pixelated">
+        <div class="image-caption">Sample 5</div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- Part 1.7.0 -->
+
+  <div class="section" id="part1-7-0">
+    <div class="section-title"><div class="section-line"></div><h2>1.7 Image-to-Image Translation (SDEdit)</h2></div>
+    <div class="description">
+      In this part, I implemented the <b>SDEdit</b> algorithm. The idea is simple but powerful:
+      we take a real image, add noise to it up to a certain timestep $t$, and then let the diffusion model denoise it starting from that step.
+      <br/><br/>
+      This effectively "projects" the image back onto the manifold of natural images known to the model.
+      <ul class="bul">
+        <li>At <b>high noise levels</b> (e.g., start=1), the original content is mostly lost, and the model hallucinates a completely new image (often unrelated) that matches the remaining low-frequency structure.</li>
+        <li>At <b>low noise levels</b> (e.g., start=20), the original structure is preserved, and the model simply enhances details or textures.</li>
+      </ul>
+      Below are the results for the Campanile and two custom images (a sketch of Shego and a Minecraft landscape).
+    </div>
+
+    <div class="subnote" style="margin-bottom: 10px;"><b>1. Campanile</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic1/original.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic1/level01.png" alt="Start 1" class="pixelated">
+        <div class="image-caption">Start 1<br>(High Noise)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic1/level03.png" alt="Start 3" class="pixelated">
+        <div class="image-caption">Start 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic1/level05.png" alt="Start 5" class="pixelated">
+        <div class="image-caption">Start 5</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic1/level07.png" alt="Start 7" class="pixelated">
+        <div class="image-caption">Start 7</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic1/level10.png" alt="Start 10" class="pixelated">
+        <div class="image-caption">Start 10</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic1/level20.png" alt="Start 20" class="pixelated">
+        <div class="image-caption">Start 20<br>(Low Noise)</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>2. Custom Image 1 (Shego)</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic2/original.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic2/level01.png" alt="Start 1" class="pixelated">
+        <div class="image-caption">Start 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic2/level03.png" alt="Start 3" class="pixelated">
+        <div class="image-caption">Start 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic2/level05.png" alt="Start 5" class="pixelated">
+        <div class="image-caption">Start 5</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic2/level07.png" alt="Start 7" class="pixelated">
+        <div class="image-caption">Start 7</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic2/level10.png" alt="Start 10" class="pixelated">
+        <div class="image-caption">Start 10</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic2/level20.png" alt="Start 20" class="pixelated">
+        <div class="image-caption">Start 20</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>3. Custom Image 2 (Minecraft landscape)</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic3/original.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic3/level01.png" alt="Start 1" class="pixelated">
+        <div class="image-caption">Start 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic3/level03.png" alt="Start 3" class="pixelated">
+        <div class="image-caption">Start 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic3/level05.png" alt="Start 5" class="pixelated">
+        <div class="image-caption">Start 5</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic3/level07.png" alt="Start 7" class="pixelated">
+        <div class="image-caption">Start 7</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic3/level10.png" alt="Start 10" class="pixelated">
+        <div class="image-caption">Start 10</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic3/level20.png" alt="Start 20" class="pixelated">
+        <div class="image-caption">Start 20</div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- Part 1.7.1 -->
+
+
+  <div class="section" id="part1-7-1">
+    <div class="section-title"><div class="section-line"></div><h2>1.7.1 Editing Web and Hand-Drawn Images</h2></div>
+    <div class="description">
+      SDEdit works exceptionally well for projecting non-realistic images (like sketches or cartoons) onto the natural image manifold.
+      Here, I took:
+      <ul class="bul">
+        <li>A <b>web image</b> (a drawing/graphic).</li>
+        <li>Two <b>hand-drawn sketches</b> that I created.</li>
+      </ul>
+      I applied the same SDEdit procedure with varying noise levels.
+      <br/><br/>
+      At higher noise levels (low `i_start` like 1 or 3), the model takes significant liberties, often turning a simple sketch into a photorealistic object that only vaguely resembles the original shape. Sometimes it does not come close at all, which can be seen with my 2nd drawing. 
+      At lower noise levels (high `i_start` like 10 or 20), the original strokes are somehwat preserved but cleaned up / made more realisitic / made more abstract.
+    </div>
+
+    <div class="subnote" style="margin-bottom: 10px;"><b>1. Web Image</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/webpic/francoise.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/webpic/level01.png" alt="Start 1" class="pixelated">
+        <div class="image-caption">Start 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/webpic/level03.png" alt="Start 3" class="pixelated">
+        <div class="image-caption">Start 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/webpic/level05.png" alt="Start 5" class="pixelated">
+        <div class="image-caption">Start 5</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/webpic/level07.png" alt="Start 7" class="pixelated">
+        <div class="image-caption">Start 7</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/webpic/level10.png" alt="Start 10" class="pixelated">
+        <div class="image-caption">Start 10</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/webpic/level20.png" alt="Start 20" class="pixelated">
+        <div class="image-caption">Start 20</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>2. Hand-Drawn Sketch 1</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn1/airplane.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn1/level01.png" alt="Start 1" class="pixelated">
+        <div class="image-caption">Start 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn1/level03.png" alt="Start 3" class="pixelated">
+        <div class="image-caption">Start 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn1/level05.png" alt="Start 5" class="pixelated">
+        <div class="image-caption">Start 5</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn1/level07.png" alt="Start 7" class="pixelated">
+        <div class="image-caption">Start 7</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn1/level10.png" alt="Start 10" class="pixelated">
+        <div class="image-caption">Start 10</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn1/level20.png" alt="Start 20" class="pixelated">
+        <div class="image-caption">Start 20</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>3. Hand-Drawn Sketch 2</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn2/bridge.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn2/level01.png" alt="Start 1" class="pixelated">
+        <div class="image-caption">Start 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn2/level03.png" alt="Start 3" class="pixelated">
+        <div class="image-caption">Start 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn2/level05.png" alt="Start 5" class="pixelated">
+        <div class="image-caption">Start 5</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn2/level07.png" alt="Start 7" class="pixelated">
+        <div class="image-caption">Start 7</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn2/level10.png" alt="Start 10" class="pixelated">
+        <div class="image-caption">Start 10</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_1/handdrawn2/level20.png" alt="Start 20" class="pixelated">
+        <div class="image-caption">Start 20</div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- Part 1.7.2 -->
+
+
+  <div class="section" id="part1-7-2">
+    <div class="section-title"><div class="section-line"></div><h2>1.7.2 Inpainting</h2></div>
+    <div class="description">
+      Inpainting allows us to replace specific parts of an image with new content generated by the diffusion model, while keeping the rest of the image unchanged.
+      This is achieved by modifying the denoising loop:
+      $$ x_{t-1} = \text{mask} \cdot x_{t-1}^\text{known} + (1 - \text{mask}) \cdot x_{t-1}^\text{unknown} $$
+      At every step, we force the pixels outside the mask (the parts we want to keep) to match the noisy version of the original image, while letting the model freely denoise the pixels inside the mask.
+      
+      Here is the core of my `inpaint` function:
+      <pre>
+def inpaint(original_image, mask, prompt_embeds, uncond_prompt_embeds, timesteps, scale=7, display=True):
+    # Start with random noise
+    image = torch.randn_like(original_image).to(device).half()
+
+    with torch.no_grad():
+        for i in range(len(timesteps) - 1):
+            # Get timesteps
+            t = timesteps[i]
+            prev_t = timesteps[i + 1]
+
+            # Calculate alpha/beta values from schedule
+            alpha_t = alphas_cumprod[t]
+            alpha_prev = alphas_cumprod[prev_t]
+            alpha = alpha_t / alpha_prev
+            beta = 1 - alpha
+
+            # Prepare inputs
+            t_tensor = torch.tensor(t, device="cuda")
+            
+            # Get conditional and unconditional noise estimates
+            cond_out = stage_1.unet(
+                image.half().cuda(),
+                t_tensor,
+                encoder_hidden_states=prompt_embeds.half().cuda(),
+                return_dict=False
+            )[0]
+            uncond_out = stage_1.unet(
+                image.half().cuda(),
+                t_tensor,
+                encoder_hidden_states=uncond_prompt_embeds.half().cuda(),
+                return_dict=False
+            )[0]
+
+            # Split into noise and variance
+            noise_cond, pred_var = torch.split(cond_out, image.shape[1], dim=1)
+            noise_uncond, _ = torch.split(uncond_out, image.shape[1], dim=1)
+            
+            # Classifier-Free Guidance
+            guided_noise = noise_uncond + scale * (noise_cond - noise_uncond)
+
+            # DDPM update step to get x_prev (previous noisy image)
+            x0 = (image - torch.sqrt(1 - alpha_t) * guided_noise) / torch.sqrt(alpha_t)
+            x_prev = (
+                torch.sqrt(alpha_prev) * beta / (1 - alpha_t) * x0
+                + torch.sqrt(alpha) * (1 - alpha_prev) / (1 - alpha_t) * image
+            )
+            x_prev = add_variance(pred_var, t, x_prev)
+
+            # Inpainting: Replace known areas with noised original image
+            # Mask is 1 where we want to generate (inpaint), 0 where we keep original
+            noisy_original = forward(original_image, t).half().to(device)
+            image = mask * x_prev + (1 - mask) * noisy_original
+
+    return image.cpu().float().detach().numpy()
+      </pre>
+
+      I applied this to the Campanile (replacing the top) and two custom images.
+    </div>
+
+    <div class="subnote" style="margin-bottom: 10px;"><b>1. Campanile: Replaced the top</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/test_image.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original Image</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_2/impaint1/mask.png" alt="Mask" class="pixelated">
+        <div class="image-caption">Mask (White = Inpaint)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_2/impaint1/impainted.png" alt="Inpainted Result" class="pixelated">
+        <div class="image-caption">Result<br>("a high quality photo")</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>2. Custom Image 1 (Shego)</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_2/inpaint2/original.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original Image</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_2/inpaint2/mask.png" alt="Mask" class="pixelated">
+        <div class="image-caption">Mask</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_2/inpaint2/inpaint.png" alt="Inpainted Result" class="pixelated">
+        <div class="image-caption">Result</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>3. Custom Image 2 (Minecraft landscape)</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_2/inpaint3/original.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original Image</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_2/inpaint3/mask.png" alt="Mask" class="pixelated">
+        <div class="image-caption">Mask</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_2/inpaint3/inpaint.png" alt="Inpainted Result" class="pixelated">
+        <div class="image-caption">Result</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Part 1.7.3 -->
+
+  <div class="section" id="part1-7-3">
+    <div class="section-title"><div class="section-line"></div><h2>1.7.3 Text-Conditioned Image-to-Image Translation</h2></div>
+    <div class="description">
+      In this variation of SDEdit, instead of projecting the image back to a generic "high quality photo", I guided the generation with a specific text prompt: <code>"a photo of the amalfi cost"</code>.
+      <br/><br/>
+      This forces the diffusion model to reinterpret the shapes and colors of the original image as elements of the Amalfi Coast (buildings on cliffs, sea, etc.).
+      <ul class="bul">
+        <li><b>High Noise (Start 1-5):</b> The image is completely reimagined as a coastal scene, often ignoring the original content.</li>
+        <li><b>Low Noise (Start 10-20):</b> The original image structure is dominant, and the "Amalfi Coast" style is applied more subtly as a texture or lighting change.</li>
+      </ul>
+    </div>
+
+    <div class="subnote" style="margin-bottom: 10px;"><b>1. Campanile -> Amalfi Coast</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/test_image.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic1/level01.png" alt="Start 1" class="pixelated">
+        <div class="image-caption">Start 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic1/level03.png" alt="Start 3" class="pixelated">
+        <div class="image-caption">Start 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic1/level05.png" alt="Start 5" class="pixelated">
+        <div class="image-caption">Start 5</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic1/level07.png" alt="Start 7" class="pixelated">
+        <div class="image-caption">Start 7</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic1/level10.png" alt="Start 10" class="pixelated">
+        <div class="image-caption">Start 10</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic1/level20.png" alt="Start 20" class="pixelated">
+        <div class="image-caption">Start 20</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>2. Custom Image 1 (Shego) -> Amalfi Coast</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic2/original.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic2/level01.png" alt="Start 1" class="pixelated">
+        <div class="image-caption">Start 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic2/level03.png" alt="Start 3" class="pixelated">
+        <div class="image-caption">Start 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic2/level05.png" alt="Start 5" class="pixelated">
+        <div class="image-caption">Start 5</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic2/level07.png" alt="Start 7" class="pixelated">
+        <div class="image-caption">Start 7</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic2/level10.png" alt="Start 10" class="pixelated">
+        <div class="image-caption">Start 10</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic2/level20.png" alt="Start 20" class="pixelated">
+        <div class="image-caption">Start 20</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>3. Custom Image 2 (Minecraft landscape) -> Amalfi Coast</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_0/pic3/original.png" alt="Original" class="pixelated">
+        <div class="image-caption">Original</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic3/level01.png" alt="Start 1" class="pixelated">
+        <div class="image-caption">Start 1</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic3/level03.png" alt="Start 3" class="pixelated">
+        <div class="image-caption">Start 3</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic3/level05.png" alt="Start 5" class="pixelated">
+        <div class="image-caption">Start 5</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic3/level07.png" alt="Start 7" class="pixelated">
+        <div class="image-caption">Start 7</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic3/level10.png" alt="Start 10" class="pixelated">
+        <div class="image-caption">Start 10</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_7_3/pic3/level20.png" alt="Start 20" class="pixelated">
+        <div class="image-caption">Start 20</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PArt 1.8 -->
+
+  <div class="section" id="part1-8">
+    <div class="section-title"><div class="section-line"></div><h2>1.8 Visual Anagrams</h2></div>
+    <div class="description">
+      Visual Anagrams are optical illusions where an image looks like one thing upright, but something completely different when rotated 180 degrees.
+      To achieve this, I modified the denoising loop to optimize for two prompts simultaneously:
+      <ol class="bul">
+        <li>Estimate noise $\epsilon_1$ for Prompt 1 on the normal image.</li>
+        <li>Flip the image upside down.</li>
+        <li>Estimate noise $\epsilon_2$ for Prompt 2 on the flipped image.</li>
+        <li>Flip $\epsilon_2$ back and average it with $\epsilon_1$.</li>
+      </ol>
+      
+      The update step looks like this:
+      <pre>
+import numpy as np
+
+def make_flip_illusion(image, i_start, prompt_embeds_1, prompt_embeds_2, uncond_prompt_embeds, timesteps, scale=7, display=True):
+
+    with torch.no_grad():
+        for i in range(i_start, len(timesteps) - 1):
+            t = timesteps[i]
+            prev_t = timesteps[i+1]
+
+            alpha_cumprod = alphas_cumprod[t]
+            alpha_cumprod_prev = alphas_cumprod[prev_t]
+            alpha = alpha_cumprod / alpha_cumprod_prev
+            beta = 1 - alpha
+
+            t_tensor = torch.tensor(t, device="cuda")
+
+            cond_out_1 = stage_1.unet(
+                image.half().cuda(),
+                t_tensor,
+                encoder_hidden_states=prompt_embeds_1.half().cuda(),
+                return_dict=False
+            )[0]
+
+            # Unconditional Noise
+            uncond_out_1 = stage_1.unet(
+                image.half().cuda(),
+                t_tensor,
+                encoder_hidden_states=uncond_prompt_embeds.half().cuda(),
+                return_dict=False
+            )[0]
+
+            noise_cond_1, pred_var = torch.split(cond_out_1, image.shape[1], dim=1)
+            noise_uncond_1, _ = torch.split(uncond_out_1, image.shape[1], dim=1)
+
+            eps1 = noise_uncond_1 + scale * (noise_cond_1 - noise_uncond_1)
+
+            flipped_image = torch.flip(image, dims=[2])
+
+            cond_out_2 = stage_1.unet(
+                flipped_image.half().cuda(),
+                t_tensor,
+                encoder_hidden_states=prompt_embeds_2.half().cuda(),
+                return_dict=False
+            )[0]
+
+            uncond_out_2 = stage_1.unet(
+                flipped_image.half().cuda(),
+                t_tensor,
+                encoder_hidden_states=uncond_prompt_embeds.half().cuda(),
+                return_dict=False
+            )[0]
+
+            noise_cond_2, _ = torch.split(cond_out_2, image.shape[1], dim=1)
+            noise_uncond_2, _ = torch.split(uncond_out_2, image.shape[1], dim=1)
+
+            eps2_flipped = noise_uncond_2 + scale * (noise_cond_2 - noise_uncond_2)
+
+            eps2 = torch.flip(eps2_flipped, dims=[2])
+
+            eps_final = 0.5 * (eps1 + eps2)
+            x0 = (image - torch.sqrt(1 - alpha_cumprod) * eps_final) / torch.sqrt(alpha_cumprod)
+
+            pred_prev_image = (torch.sqrt(alpha_cumprod_prev) * beta / (1 - alpha_cumprod) * x0) + \
+                              (torch.sqrt(alpha) * (1 - alpha_cumprod_prev) / (1 - alpha_cumprod) * image)
+
+            image = add_variance(pred_var, t, pred_prev_image)
+            
+    return image.cpu().float().detach().numpy()
+      </pre>
+
+      Below are three examples of such illusions.
+    </div>
+
+    <div class="subnote" style="margin-bottom: 10px;"><b>1. "An Oil Painting of an Old Man" <-> "People around a Campfire"</b></div>
+    <div class="image-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="image-container">
+        <img src="outputs/part1/part1_8/campfire_man/old_man.png" alt="Upright" class="pixelated">
+        <div class="image-caption"><b>Upright:</b> An Old Man</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_8/campfire_man/campfire.png" alt="Flipped" class="pixelated">
+        <div class="image-caption"><b>Flipped 180°:</b> People around a Campfire</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>2. "A Rocket Ship" <-> "A Pencil"</b></div>
+    <div class="image-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="image-container">
+        <img src="outputs/part1/part1_8/rocket_pencil/normal.png" alt="Upright" class="pixelated">
+        <div class="image-caption"><b>Upright:</b> A Rocket Ship</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_8/rocket_pencil/flipped.png" alt="Flipped" class="pixelated">
+        <div class="image-caption"><b>Flipped 180°:</b> A Pencil</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>3. "Amalfi Coast" <-> "Snowy Mountain Village"</b></div>
+    <div class="image-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="image-container">
+        <img src="outputs/part1/part1_8/amalfi_village/normal.png" alt="Upright" class="pixelated">
+        <div class="image-caption"><b>Upright:</b> Amalfi Coast</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_8/amalfi_village/flipped.png" alt="Flipped" class="pixelated">
+        <div class="image-caption"><b>Flipped 180°:</b> Snowy Mountain Village</div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- Part 1.9 -->
+
+  <div class="section" id="part1-9">
+    <div class="section-title"><div class="section-line"></div><h2>1.9 Hybrid Images (Factorized Diffusion)</h2></div>
+    <div class="description">
+      Hybrid Images combine the low-frequency components of one image with the high-frequency components of another.
+      When viewed from afar (or squinting), you see the low-frequency structure. When viewed up close, you see the high-frequency details.
+      <br/><br/>
+      I implemented this using <b>Factorized Diffusion</b>. We generate noise estimates for two different prompts, then decompose them into frequency bands:
+      $$ \epsilon = \underbrace{\mathcal{G}_{\sigma}(\epsilon_1)}_{\text{Low Freq}} + \underbrace{(\epsilon_2 - \mathcal{G}_{\sigma}(\epsilon_2))}_{\text{High Freq}} $$
+      where $\mathcal{G}_{\sigma}$ is a Gaussian blur operation.
+      
+      <pre>
+def make_hybrids(image, i_start, prompt_embeds_1, prompt_embeds_2, uncond_prompt_embeds, timesteps, scale=7, display=True):
+    with torch.no_grad():
+        for i in range(i_start, len(timesteps) - 1):
+            t = timesteps[i]
+            prev_t = timesteps[i+1]
+
+            alpha_cumprod = alphas_cumprod[t]
+            alpha_cumprod_prev = alphas_cumprod[prev_t]
+            alpha = alpha_cumprod / alpha_cumprod_prev
+            beta = 1 - alpha
+
+            t_tensor = torch.tensor(t, device="cuda")
+            current_img = image.half().cuda()
+
+            cond1 = stage_1.unet(
+                current_img, t_tensor, encoder_hidden_states=prompt_embeds_1.half().cuda(), return_dict=False
+            )[0]
+            uncond1 = stage_1.unet(
+                current_img, t_tensor, encoder_hidden_states=uncond_prompt_embeds.half().cuda(), return_dict=False
+            )[0]
+
+            noise1, pred_var = torch.split(cond1, image.shape[1], dim=1)
+            noise1_uncond, _ = torch.split(uncond1, image.shape[1], dim=1)
+
+            eps1 = noise1_uncond + scale * (noise1 - noise1_uncond)
+
+            cond2 = stage_1.unet(
+                current_img, t_tensor, encoder_hidden_states=prompt_embeds_2.half().cuda(), return_dict=False
+            )[0]
+            uncond2 = stage_1.unet(
+                current_img, t_tensor, encoder_hidden_states=uncond_prompt_embeds.half().cuda(), return_dict=False
+            )[0]
+
+            noise2, _ = torch.split(cond2, image.shape[1], dim=1)
+            noise2_uncond, _ = torch.split(uncond2, image.shape[1], dim=1)
+
+            eps2 = noise2_uncond + scale * (noise2 - noise2_uncond)
+
+            eps_low = TF.gaussian_blur(eps1, kernel_size=33, sigma=2)
+
+            eps_high = eps2 - TF.gaussian_blur(eps2, kernel_size=33, sigma=2)
+
+            eps = eps_low + eps_high
+
+            x0 = (image - torch.sqrt(1 - alpha_cumprod) * eps) / torch.sqrt(alpha_cumprod)
+
+            pred_prev_image = (torch.sqrt(alpha_cumprod_prev) * beta / (1 - alpha_cumprod) * x0) + \
+                              (torch.sqrt(alpha) * (1 - alpha_cumprod_prev) / (1 - alpha_cumprod) * image)
+
+            image = add_variance(pred_var, t, pred_prev_image)
+
+    return image.cpu().float().detach().numpy()
+      </pre>
+
+      Below are three examples. The "Pixelated" view simulates seeing the image from a distance (low pass), revealing the hidden shape.
+    </div>
+
+    <div class="subnote" style="margin-bottom: 10px;"><b>1. "A Lithograph of a Mushroom" (Low) + "A Nuclear Explosion" (High)</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_9/mushroom_atomic/hybrid.png" alt="Hybrid" class="pixelated">
+        <div class="image-caption"><b>Hybrid Image</b><br/>(Up Close: Explosion)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_9/mushroom_atomic/blurred.png" alt="Blurred" class="pixelated">
+        <div class="image-caption"><b>Blurred View</b><br/>(Reveals Mushroom Shape)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_9/mushroom_atomic/pixelated.png" alt="Pixelated" class="pixelated">
+        <div class="image-caption"><b>Pixelated View</b><br/>(Distance Simulation)</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>2. "A Photo of a Hamburger" (Low) + "A Close up of a Toad" (High)</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_9/hamburger_toad/hybrid.png" alt="Hybrid" class="pixelated">
+        <div class="image-caption"><b>Hybrid Image</b><br/>(Up Close: Toad Skin)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_9/hamburger_toad/blurred.png" alt="Blurred" class="pixelated">
+        <div class="image-caption"><b>Blurred View</b><br/>(Reveals Burger Shape)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_9/hamburger_toad/pixelated.png" alt="Pixelated" class="pixelated">
+        <div class="image-caption"><b>Pixelated View</b><br/>(Distance Simulation)</div>
+      </div>
+    </div>
+
+    <div class="subnote" style="margin-top: 30px; margin-bottom: 10px;"><b>3. "A Lithograph of a Skull" (Low) + "A Lithograph of Waterfalls" (High)</b></div>
+    <div class="image-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="image-container">
+        <img src="outputs/part1/part1_9/skull_waterfall/hybrid.png" alt="Hybrid" class="pixelated">
+        <div class="image-caption"><b>Hybrid Image</b><br/>(Up Close: Waterfall lines)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_9/skull_waterfall/blurred.png" alt="Blurred" class="pixelated">
+        <div class="image-caption"><b>Blurred View</b><br/>(Reveals Skull)</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs/part1/part1_9/skull_waterfall/iexlated.png" alt="Pixelated" class="pixelated">
+        <div class="image-caption"><b>Pixelated View</b><br/>(Distance Simulation)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Key Takeaways -->
+   <div class="section" id="part2-takeaways-summary">
+    <div class="section-title"><div class="section-line"></div><h2>Key Takeaways: Neural Radiance Fields (Part 2)</h2></div>
+    <div class="description">
+      <ul class="bul">
+        <li><b>Coordinate-Based Representation scales to 3D:</b> The core concept from Part 1—mapping coordinates to values—extends naturally to 3D. Instead of $(u,v) \to \text{RGB}$, NeRF maps $(\mathbf{x}, \mathbf{d}) \to (\mathbf{c}, \sigma)$. The image isn't stored as pixels but emerges from integrating this continuous field along rays.</li>
+        
+        <li><b>Positional Encoding is Non-Negotiable:</b> Without high-frequency positional encoding ($L=10$), the network fails to capture fine details like the thin Lego technic parts or sharp shadows. It effectively acts as a low-pass filter, producing only blurry blobs.</li>
+        
+        <li><b>Geometry through Consistency:</b> The model never receives explicit 3D geometry (like a mesh or depth map) as input. Yet, by forcing the network to be consistent across many different views, a coherent 3D geometry <i>emerges</i> implicitly. The smooth orbit videos prove the model has learned the underlying structure, not just memorized 2D patches.</li>
+        
+        <li><b>Importance of Sampling Strategy:</b> The choice of `near` and `far` bounds and the number of samples per ray is critical.
+          <ul class="bul">
+             <li>For the <b>Lego</b> dataset, generic bounds (2.0 to 6.0) worked because the scene is normalized.</li>
+             <li>For <b>real-world data</b>, I had to tune these bounds tightly (e.g., 0.02 to 0.5) to focus the limited sampling budget on the actual object, otherwise the model wasted capacity on empty space and failed to converge.</li>
+          </ul>
+        </li>
+        
+        <li><b>Data Quality Matters:</b> The robust results on the synthetic Lego dataset compared to the more fragile results on my custom hand-captured object highlight that accurate camera poses (COLMAP/ArUco) and consistent lighting are just as important as the model architecture itself.</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- END DIV -->
+</div>
+
+
+<a href="../../index.html" class="back-button">← Back to CS 180</a>
+
+</body>
+</html>
