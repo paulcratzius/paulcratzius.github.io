@@ -453,7 +453,7 @@ media.show_images({
 })
       </pre>
 
-      Below is the evolution of the Campanile image over the denoising process (starting from a noisy image at t=690).
+      Below is the evolution of the Campanile image over the denoising process (starting from a noisy image at t=690). At timestep 690, the structural information was compromised enough that the model hallucinated a lighthouse instead of restoring the campanile.
     </div>
 
     <div class="subnote" style="margin-bottom: 10px;"><b>Denoising Process (Every 5th Iteration) starting with i_start = 10</b></div>
@@ -1342,6 +1342,480 @@ def make_hybrids(image, i_start, prompt_embeds_1, prompt_embeds_2, uncond_prompt
         
         <li><b>Data Quality Matters:</b> The robust results on the synthetic Lego dataset compared to the more fragile results on my custom hand-captured object highlight that accurate camera poses (COLMAP/ArUco) and consistent lighting are just as important as the model architecture itself.</li>
       </ul>
+    </div>
+  </div>
+
+
+
+
+<!-- ============= PART B ================ -->
+
+<!-- INTRO -->
+<div class="section" id="part-b-intro">
+    <div class="header">
+      <h1>Project 5: Diffusion Models (Part B)</h1>
+      <div class="date">Training Diffusion Models from Scratch</div>
+    </div>
+    <div class="description">
+      In <b>Part B</b>, I leave the world of pre-trained models (like DeepFloyd) behind and train my own diffusion models from scratch.
+      The goal is to first train a single-step denoiser on the MNIST dataset and then progress to a full iterative diffusion model (DDPM).
+    </div>
+  </div>
+
+  <div class="section" id="part-b-1">
+    <div class="section-title"><div class="section-line"></div><h2>Part 1: Training a Single-Step Denoising UNet</h2></div>
+    <div class="description">
+      The goal of this first section is to build a simple "One-Step Denoising" model.
+      We take a noisy image $z$ and train a neural network (UNet) to remove the noise and recover the clean image $x$.
+    </div>
+  </div>
+
+  <div class="section" id="part-b-1-1">
+    <div class="section-title"><div class="section-line"></div><h2>1.1 UNet Architecture</h2></div>
+    <div class="description">
+      Before starting the training, I implemented the <b>UNet architecture</b>. The UNet is particularly well-suited for image-to-image tasks because it preserves spatial structure.
+      <br/><br/>
+      It consists of:
+      <ul class="bul">
+        <li><b>Encoder (Downsampling):</b> Reduces spatial resolution but increases the depth of feature maps to capture context.</li>
+        <li><b>Decoder (Upsampling):</b> Reconstructs the image size step by step.</li>
+        <li><b>Skip Connections:</b> Connect corresponding layers of the encoder and decoder. This is crucial for preserving fine details (high frequencies) that are often lost during downsampling.</li>
+      </ul>
+    </div>
+    
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part1_1_architecture.png" alt="UNet Architecture Diagram">
+        <div class="image-caption"><b>UNet Architecture</b><br/>Visualization of the downsampling and upsampling blocks, as well as the skip connections (dashed lines).</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="description">
+      <b>Standard Operations</b><br/>
+      The network is built on fundamental operations, including convolutions (with padding to preserve dimensions), Group Normalization, and activation functions (GELU).
+      The more complex blocks are composed as follows:
+      <ul class="bul">
+        <li><b>ConvBlock:</b> Conv2d $\to$ GroupNorm $\to$ GELU.</li>
+        <li><b>DownBlock:</b> Downsampling (Conv2d stride=2) $\to$ ConvBlock.</li>
+        <li><b>UpBlock:</b> Upsampling (ConvTranspose2d) $\to$ Concatenation (with skip connection) $\to$ ConvBlock.</li>
+      </ul>
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part1_1_ops.png" alt="UNet Operations Diagram">
+        <div class="image-caption"><b>UNet Operations</b><br/>Detailed view of the simple and composed operations.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 1.2.1 -->
+  <div class="section" id="part-b-1-2">
+    <div class="section-title"><div class="section-line"></div><h2>1.2 Training a Single-Step Denoiser</h2></div>
+    
+    <div class="description">
+      <b>Noising Process Visualization</b><br/>
+      First, I visualized how different noise levels affect the digits. We add noise according to $z = x + \sigma \epsilon$, where $\epsilon \sim \mathcal{N}(0, I)$.
+      <br/><br/>
+      As $\sigma$ increases from 0.0 to 1.0, the digits progressively become more corrupted and harder to recognize:
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part1_2_noisy_images.png" alt="MNIST Noise Levels" class="pixelated">
+        <div class="image-caption"><b>Varying Noise Levels ($\sigma$)</b><br/>From clean ($\sigma=0.0$) to pure noise ($\sigma=1.0$).</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="description">
+      The goal is straightforward: given a noisy image $z$, train a UNet to predict the clean image $x$. 
+      I utilized the UNet architecture defined in 1.1 and trained it on the MNIST dataset. The network optimizes the Mean Squared Error (MSE) between the denoised output and the original image.
+      <br/><br/>
+      <b>Training Configuration:</b>
+      <ul class="bul">
+        <li><b>Dataset:</b> MNIST (28x28 grayscale digits)</li>
+        <li><b>Noise level:</b> $\sigma = 0.5$</li>
+        <li><b>Architecture:</b> UNet with hidden dimension $D = 128$</li>
+        <li><b>Optimizer:</b> Adam (lr = 1e-4)</li>
+        <li><b>Training:</b> 5 epochs, batch size 256</li>
+      </ul>
+    </div>
+
+    <br/>
+
+    <div class="description">
+      <b>Training Loss Curve</b><br/>
+      The model converged smoothly over 5 epochs. The loss curve shows steady improvement as the UNet learned to map noisy digits back to their clean counterparts.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part1_2_loss_curve.png" alt="Training Loss Curve">
+        <div class="image-caption"><b>Training Loss ($\sigma = 0.5$)</b><br/>Standard Mean Squared Error (MSE) loss over iterations.</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="description">
+      <b>Sample Results on Test Set</b><br/>
+      After training, the model successfully denoises test set digits. Below are the results after the 1st and 5th epoch.
+      By the 5th epoch, the reconstruction quality has improved significantly.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part1_2_1_epoch1.png" alt="Results Epoch 1" class="pixelated">
+        <div class="image-caption"><b>Results after Epoch 1</b><br/>The model begins to recover shapes, but some noise and artifacts remain.</div>
+      </div>
+      
+      <div class="image-container">
+        <img src="outputs_B/part1_2_1_epoch5.png" alt="Results Epoch 5" class="pixelated">
+        <div class="image-caption"><b>Results after Epoch 5</b><br/>Clean and sharp digit reconstructions.</div>
+      </div>
+    </div>
+  </div>
+<!-- Part 1.2.2 -->
+
+<div class="section" id="part-b-1-2-2">
+    <div class="section-title"><div class="section-line"></div><h2>1.2.2 Out-of-Distribution Testing</h2></div>
+    
+    <div class="description">
+      Our denoiser was trained on MNIST digits noised with $\sigma = 0.5$. Let's see how the denoiser performs on different $\sigma$'s that it wasn't trained for. I visualized the denoiser results on test set digits with varying levels of noise $\sigma$.
+      <br/><br/>
+      Interestingly, the model performs reasonably well even on noise levels it never saw during training, though performance degrades at the extremes ($\sigma \to 1.0$). The visualization below demonstrates how the model generalizes across the range of noise levels.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part1_2_out_of_distribution.png" alt="Out-of-Distribution Testing" class="pixelated">
+        <div class="image-caption"><b>Generalization Capability</b><br/>The model generalizes well to lower noise levels ($\sigma < 0.5$) but struggles to recover structure at very high noise ($\sigma \to 1.0$).</div>
+      </div>
+    </div>
+  </div>
+
+
+<!-- Part 1.2.3 -->
+
+<div class="section" id="part-b-1-2-3">
+    <div class="section-title"><div class="section-line"></div><h2>1.2.3 Generative Task: Denoising Pure Noise</h2></div>
+    
+    <div class="description">
+      <b>From Denoising to Generation</b><br/>
+      The ultimate goal is to generate new content, not just fix broken images. To test this capability, I trained the model to denoise <b>pure Gaussian noise</b> ($z \sim \mathcal{N}(0, I)$) without any underlying clean image signal.
+      <br/><br/>
+      Effectively, the model is given a "blank canvas" of random static and asked to hallucinate a digit. I trained this configuration for 5 epochs using the same architecture as before.
+    </div>
+
+    <div class="subnote"><b>Training Progress</b></div>
+    <div class="description">
+      The loss curve below illustrates the training trajectory. The model quickly learns to minimize the error, but as we will see, a low MSE loss doesn't necessarily result in a sharp image in this context.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part1_2_3_loss_curve.png" alt="Pure Noise Training Loss">
+        <div class="image-caption"><b>Training Loss (Pure Noise)</b><br/>Convergence over 5 epochs.</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="subnote"><b>Qualitative Results (Epoch 1)</b></div>
+    <div class="description">
+      At the very beginning of training, the model struggles to find any structure in the noise, producing results that look like vague, gray blobs.
+    </div>
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part1_2_3_epoch1.png" alt="Pure Noise Epoch 1 Results" class="pixelated">
+        <div class="image-caption"><b>Epoch 1 Results</b><br/>Top: Input Noise | Bottom: Model Output</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="subnote"><b>Qualitative Results (Epoch 5)</b></div>
+    <div class="description">
+      By the end of training, the shapes are more defined and centralized, but they still lack the distinct features of specific numbers.
+    </div>
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part1_2_3_epoch5.png" alt="Pure Noise Epoch 5 Results" class="pixelated">
+        <div class="image-caption"><b>Epoch 5 Results</b><br/>The outputs resemble a generic "average" digit rather than specific numbers.</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="description" style="background: #f0f7ff; border-color: #cce4ff;">
+      <b>Analysis: Why are the results blurry?</b>
+      <br/><br/>
+      The generated images look like a ghostly superposition of multiple numbers. This phenomenon is a direct consequence of the <b>MSE (Mean Squared Error) loss function</b>.
+      <br/><br/>
+      Mathematically, the optimal prediction that minimizes the squared error across a dataset is the <b>mean (or centroid)</b> of that dataset. Since the model receives pure random noise with no conditioning signal (it doesn't know <i>which</i> digit to generate), it hedges its bets.
+      <br/><br/>
+      Instead of guessing a "3" and risking a huge error if the target was actually a "7", the model converges to the <b>average of all MNIST digits</b>. This results in the blurry, ambiguous shapes seen above, which represent the statistical center of the data distribution.
+    </div>
+  </div>
+
+
+  <!-- PART 2 -->
+
+  <div class="section" id="part-b-2">
+    <div class="section-title"><div class="section-line"></div><h2>Part 2: Training a Flow Matching Model</h2></div>
+    
+    <div class="description">
+      While single-step denoising works for removing moderate noise, generating high-fidelity images from pure noise requires an iterative approach.
+      <br/><br/>
+      I implemented a <b>Flow Matching</b> model (a modern take on Diffusion). Instead of predicting the clean image $x_0$ in one go, the model learns to predict the <i>velocity field</i> (or noise direction) that gradually transforms pure noise into a clean image over time $t \in [0, 1]$.
+    </div>
+  </div>
+
+  <div class="section" id="part-b-2-1">
+    <div class="section-title"><div class="section-line"></div><h2>2.1 Time Conditioning</h2></div>
+    
+    <div class="description">
+      <b>Injecting Time into the UNet</b><br/>
+      In a diffusion process, the distribution of images changes at every timestep $t$. At $t=0$, we have clean images; at $t=1$, we have pure noise.
+      The UNet needs to know <i>which</i> timestep it is currently processing to predict the correct update.
+      <br/><br/>
+      To achieve this, I modified the architecture to include <b>FCBlocks</b> (Fully Connected Blocks). These blocks take a sinusoidal time embedding, process it through an MLP, and inject the resulting signal into the UNet layers via addition.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_time_conditioned_unet_architecture.png" alt="Time Conditioned UNet">
+        <div class="image-caption"><b>Time-Conditioned Architecture</b><br/>The red box highlights the new FCBlocks that inject time information into the upsampling path.</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="description">
+      <b>The FCBlock</b><br/>
+      The FCBlock acts as the bridge between the scalar timestep $t$ and the spatial feature maps of the UNet. It projects the time embedding to the correct channel dimension using Linear layers and GELU activations.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_fc_block.png" alt="FCBlock Diagram">
+        <div class="image-caption"><b>FCBlock Structure</b><br/>Projects time embeddings to feature channels.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="part-b-2-2">
+    <div class="section-title"><div class="section-line"></div><h2>2.2 Training the Flow Matching Model</h2></div>
+    
+    <div class="description">
+      <b>Training Objective</b><br/>
+      We train the model to predict the vector field $u_t(x|x_1)$ that points from noise $x_0$ towards data $x_1$.
+      During training, we sample a random clean image $x_1$, random noise $x_0$, and a random time $t \in [0, 1]$. We create a noisy intermediate image via linear interpolation:
+      $$ x_t = (1 - t)x_0 + t x_1 $$
+      The model is then trained to predict the direction $(x_1 - x_0)$ using MSE loss.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_2_training_algo.png" alt="Training Algorithm">
+        <div class="image-caption"><b>Algorithm 1: Training</b><br/>Optimizing the vector field prediction.</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="description">
+      <b>Training Progress</b><br/>
+      I trained the time-conditioned UNet for 20 epochs on MNIST. The loss curve shows a smooth convergence, indicating the model successfully learned to predict the flow direction across different timesteps.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_2_loss_curve.png" alt="Flow Matching Loss Curve">
+        <div class="image-caption"><b>Training Loss</b><br/>Mean Squared Error over 20 epochs.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="part-b-2-3">
+    <div class="section-title"><div class="section-line"></div><h2>2.3 Sampling from the Model</h2></div>
+    
+    <div class="description">
+      <b>Generating Digits</b><br/>
+      To generate new images, we invert the process. We start with pure noise $x_0 \sim \mathcal{N}(0, I)$ and numerically integrate the ordinary differential equation (ODE) defined by our neural network from $t=0$ to $t=1$.
+      <br/><br/>
+      Using the Euler method with $T$ steps, we iteratively update the image:
+      $$ x_{t + \Delta t} = x_t + \Delta t \cdot \text{Model}(x_t, t) $$
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_3_sampling_algo.png" alt="Sampling Algorithm">
+        <div class="image-caption"><b>Algorithm 2: Sampling</b><br/>Iterative generation via Euler integration.</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="description">
+      <b>Evolution of Generation Quality</b><br/>
+      I visualized the sampling results at different stages of training.
+      <ul class="bul">
+        <li><b>Epoch 1:</b> The model generates vague, blurry shapes. It has learned the mean structure but not the distinct modes of digits.</li>
+        <li><b>Epoch 5:</b> Distinct digit shapes begin to form, though some artifacts remain.</li>
+        <li><b>Epoch 10:</b> The model generates crisp, recognizable digits that look indistinguishable from the dataset.</li>
+      </ul>
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_3_epoch1.png" alt="Sampling Epoch 1" class="pixelated">
+        <div class="image-caption"><b>Epoch 1</b><br/>Blurry, "blob-like" structures.</div>
+      </div>
+      
+      <div class="image-container">
+        <img src="outputs_B/part2_3_epoch5.png" alt="Sampling Epoch 5" class="pixelated">
+        <div class="image-caption"><b>Epoch 5</b><br/>Shapes are forming, resembling specific digits.</div>
+      </div>
+
+      <div class="image-container">
+        <img src="outputs_B/part2_3_epoch10.png" alt="Sampling Epoch 10" class="pixelated">
+        <div class="image-caption"><b>Epoch 10</b><br/>Clean, high-quality generated digits.</div>
+      </div>
+    </div>
+  </div>
+
+<!-- Part 2.4 -->
+
+<div class="section" id="part-b-2-4">
+    <div class="section-title"><div class="section-line"></div><h2>2.4 Adding Class-Conditioning to UNet</h2></div>
+    
+    <div class="description">
+      <b>Controlling the Output</b><br/>
+      To transform the model from a random digit generator into a controllable tool, I injected class information. The goal is to prompt the UNet with a specific label (e.g., "5") and have it generate that digit.
+      <br/><br/>
+      <b>Architecture Modifications:</b>
+      <ul class="bul">
+        <li><b>Conditioning Vector $c$:</b> I utilized one-hot encoding for the digits 0-9.</li>
+        <li><b>FCBlocks:</b> Two additional Fully-Connected Blocks were added to the UNet to process this class vector, similar to how the time embedding is handled.</li>
+        <li><b>Dropout ($p_{uncond} = 0.1$):</b> To enable Classifier-Free Guidance (CFG) later, the model needs to know how to generate images <i>unconditionally</i>. During training, I dropped the class label 10% of the time (setting it to a zero vector).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section" id="part-b-2-5">
+    <div class="section-title"><div class="section-line"></div><h2>2.5 Training the Class-Conditioned UNet</h2></div>
+    
+    <div class="description">
+      <b>Training Algorithm</b><br/>
+      The training process includes the class label handling and the dropout mechanism. The model learns to predict the noise vector field conditioned on both $t$ and $c$.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_5_training_algo.png" alt="Algorithm 3: Class-Conditional Training">
+        <div class="image-caption"><b>Algorithm 3</b><br/>Training loop with label dropout.</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="description">
+      <b>Loss Curve</b><br/>
+      I trained the model for 20 epochs using the standard schedule. The loss curve shows stable convergence.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_5_loss_curve.png" alt="Training Loss Curve">
+        <div class="image-caption"><b>Training Loss</b><br/>Mean Squared Error over 20 epochs.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="part-b-2-6">
+    <div class="section-title"><div class="section-line"></div><h2>2.6 Sampling and Training without Scheduler</h2></div>
+    
+    <div class="description">
+      <b>Classifier-Free Guidance (CFG)</b><br/>
+      At inference time, we can dramatically improve sample quality using CFG. By computing both a conditional noise estimate ($\epsilon_{cond}$) and an unconditional one ($\epsilon_{uncond}$), we can extrapolate towards the conditional direction:
+      $$ \epsilon_{final} = \epsilon_{uncond} + \gamma (\epsilon_{cond} - \epsilon_{uncond}) $$
+      I used a guidance scale of $\gamma = 5.0$.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_6_sampling_algo.png" alt="Algorithm 4: CFG Sampling">
+        <div class="image-caption"><b>Algorithm 4</b><br/>Sampling with guidance.</div>
+      </div>
+    </div>
+
+    <br/>
+    <hr style="margin: 40px 0; border: 0; border-top: 1px solid #ddd;">
+    
+    <div class="section-title"><h3>Experiment: Removing the Learning Rate Scheduler</h3></div>
+    <div class="description">
+      <b>Simplifying the Training Pipeline</b><br/>
+      Standard diffusion training often relies on learning rate schedules (warmup and decay) to ensure stability. The assignment asked to remove this scheduler to see if we can achieve similar results with a simpler setup.
+      <br/><br/>
+      <b>How to maintain performance?</b><br/>
+      Simply removing the decay can lead to instability if the learning rate is too high. To compensate, I used the following configuration:
+      <ul class="bul">
+        <li><b>Optimizer:</b> Adam (which naturally handles adaptive learning rates per parameter).</li>
+        <li><b>Constant Learning Rate:</b> I set a conservative, constant rate of <code>lr = 1e-4</code>.</li>
+      </ul>
+      This lower, constant rate allows the model to converge smoothly without needing an explicit decay schedule.
+    </div>
+    
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_6_loss_curve.png" alt="No Scheduler Loss Curve">
+        <div class="image-caption"><b>Training Loss (No Scheduler)</b><br/>With a constant LR of 1e-4, the model converges reliably over 10 epochs.</div>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="description">
+      <b>Sampling Results</b><br/>
+      Below are the results from this simplified training run after 1, 5, and 10 epochs. Even without the scheduler, the model successfully learns to generate high-fidelity digits using CFG.
+    </div>
+
+    <div class="image-grid onecol">
+      <div class="image-container">
+        <img src="outputs_B/part2_6_epoch1.png" alt="Epoch 1 Results" class="pixelated">
+        <div class="image-caption"><b>Epoch 1</b><br/>Early noisy structures.</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs_B/part2_6_epoch5.png" alt="Epoch 5 Results" class="pixelated">
+        <div class="image-caption"><b>Epoch 5</b><br/>Digits are clearly recognizable.</div>
+      </div>
+      <div class="image-container">
+        <img src="outputs_B/part2_6_epoch10.png" alt="Epoch 10 Results" class="pixelated">
+        <div class="image-caption"><b>Epoch 10</b><br/>Final results showing correct class conditioning.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="part-b-summary">
+    <div class="section-title"><div class="section-line"></div><h2>Summary & Key Takeaways</h2></div>
+    <div class="description" style="background: #fdfdfd; border: 1px solid #eee; border-radius: 12px; padding: 20px;">
+      <b>1. The Power of Iterative Refinement</b><br/>
+      Part B demonstrated the fundamental difference between single-step and iterative models. While the single-step denoiser (Part 1.2) produced blurry "average" digits from pure noise, the iterative DDPM (Part 2) successfully sculpted crisp, diverse digits by breaking the problem down into manageable steps.
+      <br/><br/>
+      <b>2. Conditioning is Key</b><br/>
+      Adding time and class conditioning transformed the UNet from a simple denoiser into a controllable generative model. 
+      <ul class="bul">
+        <li><b>Time Conditioning:</b> Allowed the model to specialize in removing different "frequencies" of noise at different stages.</li>
+        <li><b>Class Conditioning:</b> Gave us semantic control. Combined with <b>Classifier-Free Guidance</b>, this proved to be the most powerful technique for improving image quality and adherence to the prompt.</li>
+      </ul>
+      <br/>
+      <b>3. From Scratch to State-of-the-Art</b><br/>
+      Building these models from scratch demystified the magic seen in DeepFloyd (Part A). The "flow matching" objective is mathematically elegant yet surprisingly simple to implement. Furthermore, the experiments in Part 2.6 showed that with a robust optimizer like Adam and a carefully chosen learning rate, complex schedules are not always strictly necessary for convergence.
     </div>
   </div>
 
