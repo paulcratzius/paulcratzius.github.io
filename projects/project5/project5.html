@@ -167,20 +167,13 @@
       I implemented the function <code>forward(im, t)</code> which scales the image and adds noise according to the schedule $\bar\alpha_t$:
 
       <pre>
-def forward(im, t):
-  """
-  Args:
-    im : torch tensor of size (1, 3, 64, 64) representing the clean image
-    t : integer timestep
-
-  Returns:
-    im_noisy : torch tensor of size (1, 3, 64, 64) representing the noisy image at timestep t
-  """
-  with torch.no_grad():
-    alpha_t = alphas_cumprod[t]
-    epsilon = torch.randn_like(im)
-    im_noisy = torch.sqrt(alpha_t) * im + torch.sqrt(1 - alpha_t) * epsilon
-  return im_noisy
+Function Forward(CleanImage, t):
+    1. Retrieve cumulative alpha value (alpha_bar) for timestep t
+    2. Generate random noise (epsilon)
+    3. Compute the noisy image:
+       NoisyImage = sqrt(alpha_bar) * CleanImage + sqrt(1 - alpha_bar) * Noise
+    
+    Return: NoisyImage
       </pre>
 
       Below, you can see the effect of this process on the Campanile test image at different timesteps.
@@ -339,16 +332,19 @@ def forward(im, t):
       Here is the core update step I implemented:
       
       <pre>
-# 1. Estimate x_0 from x_t
-x0_estimate = (image - torch.sqrt(1 - alpha_cumprod) * noise_est) / torch.sqrt(alpha_cumprod)
+Function Sample_Previous_Step(NoisyImage, PredictedNoise, t):
+    1. Estimate the original clean image (x_0_est) by subtracting the 
+       PredictedNoise from the NoisyImage (scaled by alpha values).
 
-# 2. Calculate the mean for x_{t-1}
-term1 = (torch.sqrt(alpha_cumprod_prev) * beta / (1 - alpha_cumprod)) * x0_estimate
-term2 = (torch.sqrt(alpha) * (1 - alpha_cumprod_prev) / (1 - alpha_cumprod)) * image
-pred_mean = term1 + term2
+    2. Calculate the posterior mean for the previous timestep (x_{t-1}):
+       Compute a weighted sum of:
+         a) The estimated clean image (x_0_est)
+         b) The current NoisyImage
 
-# 3. Add variance (stochasticity)
-pred_prev_image = add_variance(predicted_variance, t, pred_mean)
+    3. Generate the image for timestep t-1:
+       Result = PosteriorMean + Variance (random noise)
+    
+    Return: Result
       </pre>
 
 
@@ -358,99 +354,30 @@ pred_prev_image = add_variance(predicted_variance, t, pred_mean)
 
 
       <pre>
-def iterative_denoise(im_noisy, i_start, prompt_embeds, timesteps, display=True):
-  image = im_noisy
+Function Iterative_Denoise(NoisyImage, StartIndex, Prompts, Timesteps):
+    CurrentState = NoisyImage
 
-  with torch.no_grad():
-    for i in range(i_start, len(timesteps) - 1):
-      # Get timesteps
-      t = timesteps[i]
-      prev_t = timesteps[i+1]
+    For i from StartIndex down to 0:
+        1. Get current timestep t and previous timestep (t-1)
+        2. Calculate alpha and beta scheduling parameters for t
+        
+        3. Predict noise and variance using the UNet model:
+           Output = UNet(CurrentState, t, Prompts)
+           NoiseEstimate, VarianceEstimate = Split(Output)
 
-      alpha_cumprod = alphas_cumprod[t]
-      alpha_cumprod_prev = alphas_cumprod[prev_t]
-      
-      # alpha_t = alpha_bar_t / alpha_bar_prev
-      alpha = alpha_cumprod / alpha_cumprod_prev
-      beta = 1 - alpha
+        4. Estimate the original Clean Image (x_0) from CurrentState
+        
+        5. Calculate the Posterior Mean for the previous step (x_{t-1}):
+           Combine x_0 and CurrentState weighted by alpha/beta terms
+        
+        6. Sample the image for the previous step:
+           NextState = PosteriorMean + Variance (stochastic noise)
+           
+        7. (Optional) Every 5 steps, display the intermediate image
+        
+        CurrentState = NextState
 
-      model_output = stage_1.unet(
-          image,
-          t,
-          encoder_hidden_states=prompt_embeds,
-          return_dict=False
-      )[0]
-
-      # Split estimate into noise and variance estimate
-      noise_est, predicted_variance = torch.split(model_output, image.shape[1], dim=1)
-
-      # 1. Estimate x_0 from x_t (rearranging the forward diffusion equation)
-      # x_0 = (x_t - sqrt(1 - alpha_bar) * noise) / sqrt(alpha_bar)
-      x0_estimate = (image - torch.sqrt(1 - alpha_cumprod) * noise_est) / torch.sqrt(alpha_cumprod)
-      
-      # 2. Calculate the mean for x_{t-1} using equation 3
-      # term1 = (sqrt(alpha_bar_prev) * beta) / (1 - alpha_bar) * x_0
-      term1 = (torch.sqrt(alpha_cumprod_prev) * beta / (1 - alpha_cumprod)) * x0_estimate
-      
-      # term2 = (sqrt(alpha) * (1 - alpha_bar_prev) / (1 - alpha_bar)) * x_t
-      term2 = (torch.sqrt(alpha) * (1 - alpha_cumprod_prev) / (1 - alpha_cumprod)) * image
-      
-      pred_mean = term1 + term2
-      
-      # 3. Add the predicted variance (v_sigma)
-      pred_prev_image = add_variance(predicted_variance, t, pred_mean)
-
-      if display and i % 5 == 0:
-          print(f"Denoising step {i}, t={t}")
-          media.show_image(image[0].permute(1, 2, 0).cpu().detach() / 2.0 + 0.5)
-
-      image = pred_prev_image
-
-    clean = image.cpu().detach().numpy()
-
-  return clean
-
-prompt_embeds = prompt_embeds_dict["a high quality photo"]
-
-# Add noise
-i_start = 10
-t = strided_timesteps[i_start]
-im_noisy = forward(test_im, t).half().to(device)
-
-# Denoise
-print("Iterative Denoising:")
-clean = iterative_denoise(im_noisy,
-                          i_start=i_start,
-                          prompt_embeds=prompt_embeds,
-                          timesteps=strided_timesteps)
-
-# We are at t = strided_timesteps[i_start], which is the start point
-current_t = strided_timesteps[i_start]
-alpha_cumprod_t = alphas_cumprod[current_t]
-
-# Get noise estimate for one-step
-with torch.no_grad():
-    noise_est_onestep = stage_1.unet(
-        im_noisy,
-        current_t,
-        encoder_hidden_states=prompt_embeds,
-        return_dict=False
-    )[0][:, :3] # Take only noise channels
-
-    clean_one_step = (im_noisy - torch.sqrt(1 - alpha_cumprod_t) * noise_est_onestep) / torch.sqrt(alpha_cumprod_t)
-    # Convert to numpy for display compatibility
-    clean_one_step = clean_one_step.cpu().detach().numpy()
-
-blur_filtered = TF.gaussian_blur(im_noisy, kernel_size=5, sigma=2.0)
-blur_filtered = blur_filtered.cpu().detach().numpy()
-
-print("Final Results Comparison:")
-media.show_images({
-    'Noisy': im_noisy[0].permute(1, 2, 0).cpu().detach() / 2.0 + 0.5,
-    'Iteratively Denoised': clean[0].transpose(1, 2, 0) / 2.0 + 0.5,
-    'One-Step Denoised': clean_one_step[0].transpose(1, 2, 0) / 2.0 + 0.5,
-    'Gaussian Blurred': blur_filtered[0].transpose(1, 2, 0) / 2.0 + 0.5
-})
+    Return: Final Denoised Image (Clean)
       </pre>
 
       Below is the evolution of the Campanile image over the denoising process (starting from a noisy image at t=690). At timestep 690, the structural information was compromised enough that the model hallucinated a lighthouse instead of restoring the campanile.
@@ -853,61 +780,31 @@ noise_est = uncond_noise_est + scale * (noise_est - uncond_noise_est)
       
       Here is the core of my `inpaint` function:
       <pre>
-def inpaint(original_image, mask, prompt_embeds, uncond_prompt_embeds, timesteps, scale=7, display=True):
-    # Start with random noise
-    image = torch.randn_like(original_image).to(device).half()
+Function Inpaint(OriginalImage, Mask, Prompts, Scale, Timesteps):
+    1. Initialize CurrentImage with pure random noise
 
-    with torch.no_grad():
-        for i in range(len(timesteps) - 1):
-            # Get timesteps
-            t = timesteps[i]
-            prev_t = timesteps[i + 1]
+    2. For each timestep t from Start down to 0:
+        
+        # Part A: Classifier-Free Guidance
+        a. Compute Conditional Estimate using Prompts
+        b. Compute Unconditional Estimate using empty prompts
+        c. Combine estimates:
+           GuidedNoise = UncondNoise + Scale * (CondNoise - UncondNoise)
 
-            # Calculate alpha/beta values from schedule
-            alpha_t = alphas_cumprod[t]
-            alpha_prev = alphas_cumprod[prev_t]
-            alpha = alpha_t / alpha_prev
-            beta = 1 - alpha
+        # Part B: Standard Reverse Step
+        d. Compute the Denoised Image (x_prev) using GuidedNoise
+           (This follows the standard DDPM sampling update)
 
-            # Prepare inputs
-            t_tensor = torch.tensor(t, device="cuda")
-            
-            # Get conditional and unconditional noise estimates
-            cond_out = stage_1.unet(
-                image.half().cuda(),
-                t_tensor,
-                encoder_hidden_states=prompt_embeds.half().cuda(),
-                return_dict=False
-            )[0]
-            uncond_out = stage_1.unet(
-                image.half().cuda(),
-                t_tensor,
-                encoder_hidden_states=uncond_prompt_embeds.half().cuda(),
-                return_dict=False
-            )[0]
+        # Part C: Inpainting Constraint (The "Force" Step)
+        e. Generate a noisy version of the OriginalImage at timestep t
+        f. Combine the Generated Image and the Noisy Original:
+           CurrentImage = (Mask * DenoisedImage) + ((1 - Mask) * NoisyOriginal)
+           
+           (This ensures pixels inside the mask are generated, while 
+            pixels outside the mask match the original image)
 
-            # Split into noise and variance
-            noise_cond, pred_var = torch.split(cond_out, image.shape[1], dim=1)
-            noise_uncond, _ = torch.split(uncond_out, image.shape[1], dim=1)
-            
-            # Classifier-Free Guidance
-            guided_noise = noise_uncond + scale * (noise_cond - noise_uncond)
-
-            # DDPM update step to get x_prev (previous noisy image)
-            x0 = (image - torch.sqrt(1 - alpha_t) * guided_noise) / torch.sqrt(alpha_t)
-            x_prev = (
-                torch.sqrt(alpha_prev) * beta / (1 - alpha_t) * x0
-                + torch.sqrt(alpha) * (1 - alpha_prev) / (1 - alpha_t) * image
-            )
-            x_prev = add_variance(pred_var, t, x_prev)
-
-            # Inpainting: Replace known areas with noised original image
-            # Mask is 1 where we want to generate (inpaint), 0 where we keep original
-            noisy_original = forward(original_image, t).half().to(device)
-            image = mask * x_prev + (1 - mask) * noisy_original
-
-    return image.cpu().float().detach().numpy()
-      </pre>
+    3. Return CurrentImage
+        </pre>
 
       I applied this to the Campanile (replacing the top) and two custom images.
     </div>
@@ -1090,75 +987,31 @@ def inpaint(original_image, mask, prompt_embeds, uncond_prompt_embeds, timesteps
       
       The update step looks like this:
       <pre>
-import numpy as np
+Function Make_Flip_Illusion(StartImage, StartIndex, Prompt1, Prompt2, Scale):
+    CurrentState = StartImage
 
-def make_flip_illusion(image, i_start, prompt_embeds_1, prompt_embeds_2, uncond_prompt_embeds, timesteps, scale=7, display=True):
+    For i from StartIndex down to 0:
+        
+        # 1. Estimate Noise for the UPRIGHT image using Prompt 1
+        Noise1 = Predict_Noise(CurrentState, t, Prompt1, GuidanceScale)
+        
+        # 2. Create FLIPPED version of the current image
+        FlippedState = Flip_Image(CurrentState)
+        
+        # 3. Estimate Noise for the FLIPPED image using Prompt 2
+        Noise2_Flipped = Predict_Noise(FlippedState, t, Prompt2, GuidanceScale)
+        
+        # 4. Flip the noise estimate back to upright orientation
+        Noise2 = Flip_Image(Noise2_Flipped)
+        
+        # 5. Average the two noise estimates
+        CombinedNoise = (Noise1 + Noise2) / 2
+        
+        # 6. Perform the standard Denoising Step using CombinedNoise
+        CurrentState = Denoise_Step(CurrentState, CombinedNoise, t)
 
-    with torch.no_grad():
-        for i in range(i_start, len(timesteps) - 1):
-            t = timesteps[i]
-            prev_t = timesteps[i+1]
-
-            alpha_cumprod = alphas_cumprod[t]
-            alpha_cumprod_prev = alphas_cumprod[prev_t]
-            alpha = alpha_cumprod / alpha_cumprod_prev
-            beta = 1 - alpha
-
-            t_tensor = torch.tensor(t, device="cuda")
-
-            cond_out_1 = stage_1.unet(
-                image.half().cuda(),
-                t_tensor,
-                encoder_hidden_states=prompt_embeds_1.half().cuda(),
-                return_dict=False
-            )[0]
-
-            # Unconditional Noise
-            uncond_out_1 = stage_1.unet(
-                image.half().cuda(),
-                t_tensor,
-                encoder_hidden_states=uncond_prompt_embeds.half().cuda(),
-                return_dict=False
-            )[0]
-
-            noise_cond_1, pred_var = torch.split(cond_out_1, image.shape[1], dim=1)
-            noise_uncond_1, _ = torch.split(uncond_out_1, image.shape[1], dim=1)
-
-            eps1 = noise_uncond_1 + scale * (noise_cond_1 - noise_uncond_1)
-
-            flipped_image = torch.flip(image, dims=[2])
-
-            cond_out_2 = stage_1.unet(
-                flipped_image.half().cuda(),
-                t_tensor,
-                encoder_hidden_states=prompt_embeds_2.half().cuda(),
-                return_dict=False
-            )[0]
-
-            uncond_out_2 = stage_1.unet(
-                flipped_image.half().cuda(),
-                t_tensor,
-                encoder_hidden_states=uncond_prompt_embeds.half().cuda(),
-                return_dict=False
-            )[0]
-
-            noise_cond_2, _ = torch.split(cond_out_2, image.shape[1], dim=1)
-            noise_uncond_2, _ = torch.split(uncond_out_2, image.shape[1], dim=1)
-
-            eps2_flipped = noise_uncond_2 + scale * (noise_cond_2 - noise_uncond_2)
-
-            eps2 = torch.flip(eps2_flipped, dims=[2])
-
-            eps_final = 0.5 * (eps1 + eps2)
-            x0 = (image - torch.sqrt(1 - alpha_cumprod) * eps_final) / torch.sqrt(alpha_cumprod)
-
-            pred_prev_image = (torch.sqrt(alpha_cumprod_prev) * beta / (1 - alpha_cumprod) * x0) + \
-                              (torch.sqrt(alpha) * (1 - alpha_cumprod_prev) / (1 - alpha_cumprod) * image)
-
-            image = add_variance(pred_var, t, pred_prev_image)
-            
-    return image.cpu().float().detach().numpy()
-      </pre>
+    Return: CurrentState
+        </pre>
 
       Below are three examples of such illusions.
     </div>
@@ -1215,59 +1068,33 @@ def make_flip_illusion(image, i_start, prompt_embeds_1, prompt_embeds_2, uncond_
       where $\mathcal{G}_{\sigma}$ is a Gaussian blur operation.
       
       <pre>
-def make_hybrids(image, i_start, prompt_embeds_1, prompt_embeds_2, uncond_prompt_embeds, timesteps, scale=7, display=True):
-    with torch.no_grad():
-        for i in range(i_start, len(timesteps) - 1):
-            t = timesteps[i]
-            prev_t = timesteps[i+1]
+Function Make_Hybrid_Image(StartImage, StartIndex, PromptLowFreq, PromptHighFreq, Scale):
+    CurrentState = StartImage
 
-            alpha_cumprod = alphas_cumprod[t]
-            alpha_cumprod_prev = alphas_cumprod[prev_t]
-            alpha = alpha_cumprod / alpha_cumprod_prev
-            beta = 1 - alpha
+    For i from StartIndex down to 0:
+        
+        # 1. Generate Noise Estimates for both prompts
+        # eps1 corresponds to the image seen from far away (Low Frequency)
+        # eps2 corresponds to the image seen from up close (High Frequency)
+        Noise1 = Predict_Noise(CurrentState, t, PromptLowFreq, Scale)
+        Noise2 = Predict_Noise(CurrentState, t, PromptHighFreq, Scale)
 
-            t_tensor = torch.tensor(t, device="cuda")
-            current_img = image.half().cuda()
+        # 2. Frequency Decomposition
+        # Apply Low-Pass Filter (Gaussian Blur) to Noise1
+        LowFreq_Noise = Gaussian_Blur(Noise1, KernelSize=33, Sigma=2)
+        
+        # Apply High-Pass Filter to Noise2 (Original - Blurred)
+        HighFreq_Noise = Noise2 - Gaussian_Blur(Noise2, KernelSize=33, Sigma=2)
 
-            cond1 = stage_1.unet(
-                current_img, t_tensor, encoder_hidden_states=prompt_embeds_1.half().cuda(), return_dict=False
-            )[0]
-            uncond1 = stage_1.unet(
-                current_img, t_tensor, encoder_hidden_states=uncond_prompt_embeds.half().cuda(), return_dict=False
-            )[0]
+        # 3. Combine Frequencies
+        CombinedNoise = LowFreq_Noise + HighFreq_Noise
 
-            noise1, pred_var = torch.split(cond1, image.shape[1], dim=1)
-            noise1_uncond, _ = torch.split(uncond1, image.shape[1], dim=1)
+        # 4. Standard Denoising Step
+        # Update the image using the hybrid noise estimate
+        CurrentState = Denoise_Step(CurrentState, CombinedNoise, t)
 
-            eps1 = noise1_uncond + scale * (noise1 - noise1_uncond)
-
-            cond2 = stage_1.unet(
-                current_img, t_tensor, encoder_hidden_states=prompt_embeds_2.half().cuda(), return_dict=False
-            )[0]
-            uncond2 = stage_1.unet(
-                current_img, t_tensor, encoder_hidden_states=uncond_prompt_embeds.half().cuda(), return_dict=False
-            )[0]
-
-            noise2, _ = torch.split(cond2, image.shape[1], dim=1)
-            noise2_uncond, _ = torch.split(uncond2, image.shape[1], dim=1)
-
-            eps2 = noise2_uncond + scale * (noise2 - noise2_uncond)
-
-            eps_low = TF.gaussian_blur(eps1, kernel_size=33, sigma=2)
-
-            eps_high = eps2 - TF.gaussian_blur(eps2, kernel_size=33, sigma=2)
-
-            eps = eps_low + eps_high
-
-            x0 = (image - torch.sqrt(1 - alpha_cumprod) * eps) / torch.sqrt(alpha_cumprod)
-
-            pred_prev_image = (torch.sqrt(alpha_cumprod_prev) * beta / (1 - alpha_cumprod) * x0) + \
-                              (torch.sqrt(alpha) * (1 - alpha_cumprod_prev) / (1 - alpha_cumprod) * image)
-
-            image = add_variance(pred_var, t, pred_prev_image)
-
-    return image.cpu().float().detach().numpy()
-      </pre>
+    Return: CurrentState
+        </pre>
 
       Below are three examples. The "Pixelated" view simulates seeing the image from a distance (low pass), revealing the hidden shape.
     </div>
